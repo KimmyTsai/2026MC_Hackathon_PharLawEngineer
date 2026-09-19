@@ -1,0 +1,18 @@
+{
+  "id": "mail_003",
+  "received_at": "2026-09-23T08:05:00+08:00",
+  "from": "facility@example.edu",
+  "to": "student@example.edu",
+  "subject": "【總務處】資訊系館西側電梯今日保養停用",
+  "body": "資訊系館西側電梯（W 側）今日 9/23 08:00 至 17:00 進行年度保養，期間停止使用，請改用東側電梯。造成不便敬請見諒。\n\n總務處營繕組",
+  "labels": ["facility", "elevator"],
+  "expected_classification": "facility_notice",
+  "expected_override": {
+    "target_id": "CSIE_W_ELEV",
+    "status": "closed",
+    "reason": "電梯年度保養",
+    "valid_from": "2026-09-23T08:00:00+08:00",
+    "valid_to": "2026-09-23T17:00:00+08:00"
+  },
+  "note": "Fixture: the material trigger for the on-campus re-route (W elevator -> E elevator)."
+}

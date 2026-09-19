@@ -1,0 +1,527 @@
+{
+  "draft": true,
+  "note": "DRAFT. Topology is hand-built to exercise the planner; coordinates are approximate and MUST be corrected against the NCKU accessible-campus map (see CLAUDE.md 12) before any demo that claims real geography.",
+  "nodes": [
+    {
+      "id": "HOME_OFFCAMPUS",
+      "name": "校外租屋處（合成地點）",
+      "type": "offcampus",
+      "lat": 22.988,
+      "lng": 120.202,
+      "step_free": true,
+      "source": "user_report",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "BUS_STOP_HOME",
+      "name": "住處附近公車站",
+      "type": "stop",
+      "lat": 22.9884,
+      "lng": 120.2032,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "YB_ST_HOME",
+      "name": "YouBike 住處站",
+      "type": "bike_station",
+      "lat": 22.9882,
+      "lng": 120.2028,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "BUS_STOP_CHENGDA",
+      "name": "成大站（大學路）",
+      "type": "stop",
+      "lat": 22.9962,
+      "lng": 120.2172,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "YB_ST_GUANGFU",
+      "name": "YouBike 光復校區站",
+      "type": "bike_station",
+      "lat": 22.9955,
+      "lng": 120.216,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "DORM_A",
+      "name": "學生宿舍 A 棟",
+      "type": "dorm",
+      "lat": 22.9988,
+      "lng": 120.2196,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "JCT_01",
+      "name": "大學路校門口路口",
+      "type": "junction",
+      "lat": 22.9963,
+      "lng": 120.2178,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "JCT_02",
+      "name": "圖書館前廣場路口",
+      "type": "junction",
+      "lat": 22.9966,
+      "lng": 120.219,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "JCT_03",
+      "name": "資訊系館前路口",
+      "type": "junction",
+      "lat": 22.9969,
+      "lng": 120.2201,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "JCT_04",
+      "name": "系館東側路口",
+      "type": "junction",
+      "lat": 22.9975,
+      "lng": 120.2208,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "JCT_05",
+      "name": "東側坡道上方路口",
+      "type": "junction",
+      "lat": 22.9972,
+      "lng": 120.2215,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "RAMP_07",
+      "name": "圖書館側無障礙斜坡",
+      "type": "ramp",
+      "lat": 22.9967,
+      "lng": 120.2195,
+      "step_free": true,
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "CSIE_W_ENT",
+      "name": "資訊系館西側入口",
+      "type": "entrance",
+      "building": "CSIE",
+      "floor": 1,
+      "lat": 22.9969,
+      "lng": 120.221,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "CSIE_E_ENT",
+      "name": "資訊系館東側入口",
+      "type": "entrance",
+      "building": "CSIE",
+      "floor": 1,
+      "lat": 22.9971,
+      "lng": 120.2216,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "CSIE_S_ENT",
+      "name": "資訊系館南側階梯入口",
+      "type": "entrance",
+      "building": "CSIE",
+      "floor": 1,
+      "lat": 22.9967,
+      "lng": 120.2212,
+      "step_free": false,
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "CSIE_W_ELEV",
+      "name": "資訊系館西側電梯",
+      "type": "elevator",
+      "building": "CSIE",
+      "floors": [1, 2, 3, 4, 5],
+      "lat": 22.99692,
+      "lng": 120.22105,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "CSIE_E_ELEV",
+      "name": "資訊系館東側電梯",
+      "type": "elevator",
+      "building": "CSIE",
+      "floors": [1, 2, 3, 4, 5],
+      "lat": 22.99712,
+      "lng": 120.22162,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "CSIE_1F_HALL",
+      "name": "資訊系館 1F 大廳",
+      "type": "junction",
+      "building": "CSIE",
+      "floor": 1,
+      "lat": 22.997,
+      "lng": 120.2213,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "CSIE_4F_HALL",
+      "name": "資訊系館 4F 走廊",
+      "type": "junction",
+      "building": "CSIE",
+      "floor": 4,
+      "lat": 22.997,
+      "lng": 120.2213,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "LIB_ENT",
+      "name": "總圖書館入口",
+      "type": "entrance",
+      "building": "LIB",
+      "floor": 1,
+      "lat": 22.9982,
+      "lng": 120.2189,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "LIB_ELEV",
+      "name": "總圖書館電梯",
+      "type": "elevator",
+      "building": "LIB",
+      "floors": [1, 2, 3, 4],
+      "lat": 22.99822,
+      "lng": 120.21895,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "LIB_3F_HALL",
+      "name": "總圖書館 3F",
+      "type": "junction",
+      "building": "LIB",
+      "floor": 3,
+      "lat": 22.99822,
+      "lng": 120.21895,
+      "step_free": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_001",
+      "from": "HOME_OFFCAMPUS",
+      "to": "YB_ST_HOME",
+      "length_m": 120,
+      "slope": "flat",
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_002",
+      "from": "HOME_OFFCAMPUS",
+      "to": "BUS_STOP_HOME",
+      "length_m": 150,
+      "slope": "flat",
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_030",
+      "from": "BUS_STOP_HOME",
+      "to": "BUS_STOP_CHENGDA",
+      "length_m": 2100,
+      "mode": "bus",
+      "slope": "flat",
+      "covered": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_031",
+      "from": "YB_ST_HOME",
+      "to": "YB_ST_GUANGFU",
+      "length_m": 2000,
+      "mode": "youbike",
+      "slope": "flat",
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_003",
+      "from": "BUS_STOP_CHENGDA",
+      "to": "JCT_01",
+      "length_m": 60,
+      "slope": "gentle",
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_004",
+      "from": "YB_ST_GUANGFU",
+      "to": "JCT_01",
+      "length_m": 140,
+      "slope": "flat",
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_005",
+      "from": "DORM_A",
+      "to": "JCT_02",
+      "length_m": 120,
+      "slope": "flat",
+      "covered": true,
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_006",
+      "from": "JCT_01",
+      "to": "JCT_02",
+      "length_m": 150,
+      "slope": "flat",
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_007",
+      "from": "JCT_02",
+      "to": "RAMP_07",
+      "length_m": 40,
+      "slope": "gentle",
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_008",
+      "from": "RAMP_07",
+      "to": "JCT_03",
+      "length_m": 60,
+      "slope": "gentle",
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_009",
+      "from": "JCT_02",
+      "to": "JCT_03",
+      "length_m": 95,
+      "stairs": true,
+      "slope": "flat",
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_018",
+      "from": "JCT_02",
+      "to": "JCT_03",
+      "length_m": 165,
+      "slope": "flat",
+      "covered": true,
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_010",
+      "from": "JCT_03",
+      "to": "CSIE_W_ENT",
+      "length_m": 85,
+      "slope": "flat",
+      "covered": true,
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_011",
+      "from": "JCT_03",
+      "to": "JCT_04",
+      "length_m": 70,
+      "slope": "flat",
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_012",
+      "from": "JCT_04",
+      "to": "CSIE_E_ENT",
+      "length_m": 45,
+      "slope": "gentle",
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_013",
+      "from": "JCT_02",
+      "to": "LIB_ENT",
+      "length_m": 210,
+      "slope": "gentle",
+      "covered": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_014",
+      "from": "JCT_04",
+      "to": "JCT_05",
+      "length_m": 90,
+      "slope": "steep",
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_015",
+      "from": "JCT_05",
+      "to": "CSIE_E_ENT",
+      "length_m": 30,
+      "slope": "flat",
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_016",
+      "from": "JCT_03",
+      "to": "CSIE_S_ENT",
+      "length_m": 40,
+      "stairs": true,
+      "slope": "flat",
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_017",
+      "from": "CSIE_S_ENT",
+      "to": "CSIE_1F_HALL",
+      "length_m": 15,
+      "stairs": true,
+      "indoor": true,
+      "covered": true,
+      "source": "photo_survey",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_020",
+      "from": "CSIE_W_ENT",
+      "to": "CSIE_1F_HALL",
+      "length_m": 25,
+      "slope": "flat",
+      "indoor": true,
+      "covered": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_021",
+      "from": "CSIE_E_ENT",
+      "to": "CSIE_1F_HALL",
+      "length_m": 20,
+      "slope": "flat",
+      "indoor": true,
+      "covered": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_022",
+      "from": "CSIE_1F_HALL",
+      "to": "CSIE_W_ELEV",
+      "length_m": 10,
+      "slope": "flat",
+      "indoor": true,
+      "covered": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_023",
+      "from": "CSIE_1F_HALL",
+      "to": "CSIE_E_ELEV",
+      "length_m": 35,
+      "slope": "flat",
+      "indoor": true,
+      "covered": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_024",
+      "from": "CSIE_W_ELEV",
+      "to": "CSIE_4F_HALL",
+      "length_m": 8,
+      "slope": "flat",
+      "indoor": true,
+      "covered": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_025",
+      "from": "CSIE_E_ELEV",
+      "to": "CSIE_4F_HALL",
+      "length_m": 40,
+      "slope": "flat",
+      "indoor": true,
+      "covered": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_026",
+      "from": "LIB_ENT",
+      "to": "LIB_ELEV",
+      "length_m": 30,
+      "slope": "flat",
+      "indoor": true,
+      "covered": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "e_027",
+      "from": "LIB_ELEV",
+      "to": "LIB_3F_HALL",
+      "length_m": 8,
+      "slope": "flat",
+      "indoor": true,
+      "covered": true,
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    }
+  ]
+}

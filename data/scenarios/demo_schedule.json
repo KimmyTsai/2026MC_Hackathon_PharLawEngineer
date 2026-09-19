@@ -1,0 +1,35 @@
+{
+  "source": "timetable_image",
+  "source_ref": "data/photos/timetable_clean.png",
+  "extraction_confidence": 0.94,
+  "courses": [
+    {
+      "course": "計算機組織",
+      "weekday": 3,
+      "start": "09:00",
+      "end": "11:50",
+      "room": "CSIE-4263",
+      "note": "期中報告日",
+      "importance": "presentation",
+      "confidence": 0.94
+    },
+    {
+      "course": "服務學習",
+      "weekday": 3,
+      "start": "13:10",
+      "end": "15:00",
+      "room": "CSIE-1101",
+      "importance": "routine",
+      "confidence": 0.88
+    },
+    {
+      "course": "專題討論",
+      "weekday": 5,
+      "start": "10:10",
+      "end": "12:00",
+      "room": "LIB-0301",
+      "importance": "graded",
+      "confidence": 0.71
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "name": "demo_wed",
+  "date": "2026-09-23",
+  "timezone": "Asia/Taipei",
+  "start_at": "07:45",
+  "description": "Canonical demo: Wednesday 09:00 presentation at CSIE-4263. A crutches-profile student commutes from off campus, then walks an accessible route inside campus. Rain + zero bikes + a flood advisory invalidate the bike plan; a maintenance notice closes the west elevator; the student has still not left at 08:25.",
+  "user": {
+    "profile": "crutches",
+    "home_node": "HOME_OFFCAMPUS",
+    "campus_home_node": "DORM_A",
+    "email": "student@example.edu",
+    "note": "Synthetic identity and location. Mobility state is handled locally (see CLAUDE.md 2.5)."
+  },
+  "schedule": "data/scenarios/demo_schedule.json",
+  "mailbox": ["mail_001", "mail_002", "mail_003"],
+  "baseline_signals": [
+    {
+      "kind": "rain",
+      "provider": "cwa_fixture",
+      "at": "07:45",
+      "valid_for_minutes": 60,
+      "area": "台南市東區",
+      "value": { "mm_per_hr": 0, "rain_from": null, "description": "多雲" }
+    },
+    {
+      "kind": "bike_availability",
+      "provider": "youbike_fixture",
+      "at": "07:45",
+      "valid_for_minutes": 10,
+      "area": "YB_ST_HOME",
+      "value": { "station": "YB_ST_HOME", "bikes": 7, "docks": 12 }
+    },
+    {
+      "kind": "bus_eta",
+      "provider": "tdx_fixture",
+      "at": "07:45",
+      "valid_for_minutes": 5,
+      "area": "BUS_STOP_HOME",
+      "value": {
+        "stop": "BUS_STOP_HOME",
+        "route": "藍幹線",
+        "eta_minutes": 9,
+        "ride_minutes": 14,
+        "low_floor": true
+      }
+    },
+    {
+      "kind": "flood",
+      "provider": "flood_fixture",
+      "at": "07:45",
+      "valid_for_minutes": 30,
+      "area": "大學路",
+      "value": { "level": "none", "corridor": "大學路" }
+    },
+    {
+      "kind": "air_quality",
+      "provider": "aqi_fixture",
+      "at": "07:45",
+      "valid_for_minutes": 60,
+      "area": "台南市東區",
+      "value": { "aqi": 52, "status": "moderate" }
+    },
+    {
+      "kind": "departure_state",
+      "provider": "device_fixture",
+      "at": "07:45",
+      "valid_for_minutes": 15,
+      "value": { "departed": false, "at_node": "HOME_OFFCAMPUS" }
+    }
+  ],
+  "events": [
+    {
+      "t": "07:50",
+      "type": "day_start",
+      "payload": {},
+      "expect": "initial plan for the 09:00 presentation, with departure time and next check"
+    },
+    {
+      "t": "08:05",
+      "type": "notice_received",
+      "payload": { "mail_id": "mail_003" },
+      "expect": "west elevator marked closed from the notice; on-campus leg re-routed to the east elevator"
+    },
+    {
+      "t": "08:15",
+      "type": "weather_update",
+      "payload": { "rain_from": "08:30", "mm_per_hr": 15, "description": "短時強降雨" },
+      "expect": "covered segments preferred; bike option penalised"
+    },
+    {
+      "t": "08:15",
+      "type": "bike_status_update",
+      "payload": { "station": "YB_ST_HOME", "bikes": 0, "docks": 19 },
+      "expect": "bike option becomes infeasible, not merely slower"
+    },
+    {
+      "t": "08:16",
+      "type": "flood_warning",
+      "payload": { "corridor": "大學路", "level": "advisory", "reason": "積水 10cm" },
+      "expect": "exposed bike/walk legs disqualified on safety grounds"
+    },
+    {
+      "t": "08:22",
+      "type": "bus_eta_update",
+      "payload": {
+        "stop": "BUS_STOP_HOME",
+        "route": "藍幹線",
+        "eta_minutes": 6,
+        "ride_minutes": 15,
+        "low_floor": true
+      },
+      "expect": "low-floor bus plan selected; departure advanced"
+    },
+    {
+      "t": "08:25",
+      "type": "user_not_departed",
+      "payload": { "at_node": "HOME_OFFCAMPUS" },
+      "expect": "late-risk warning plus an email draft that CANNOT send without confirmation"
+    },
+    {
+      "t": "08:27",
+      "type": "report_submitted",
+      "payload": {
+        "photo": "data/photos/ramp_blocked.jpg",
+        "node_hint": "RAMP_07",
+        "confidence_hint": "low"
+      },
+      "expect": "low-confidence photo reading asks the user instead of silently overriding the graph"
+    }
+  ]
+}

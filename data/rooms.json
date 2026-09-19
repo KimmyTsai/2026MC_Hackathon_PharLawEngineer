@@ -1,0 +1,38 @@
+{
+  "draft": true,
+  "rooms": [
+    {
+      "room": "CSIE-4263",
+      "name": "資訊系館 4263 教室",
+      "building": "CSIE",
+      "floor": 4,
+      "node": "CSIE_4F_HALL",
+      "entrances": ["CSIE_W_ENT", "CSIE_E_ENT", "CSIE_S_ENT"],
+      "elevators": ["CSIE_W_ELEV", "CSIE_E_ELEV"],
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "room": "CSIE-1101",
+      "name": "資訊系館 1F 大講堂",
+      "building": "CSIE",
+      "floor": 1,
+      "node": "CSIE_1F_HALL",
+      "entrances": ["CSIE_W_ENT", "CSIE_E_ENT", "CSIE_S_ENT"],
+      "elevators": [],
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "room": "LIB-0301",
+      "name": "總圖書館 3F 討論室",
+      "building": "LIB",
+      "floor": 3,
+      "node": "LIB_3F_HALL",
+      "entrances": ["LIB_ENT"],
+      "elevators": ["LIB_ELEV"],
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    }
+  ]
+}

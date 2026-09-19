@@ -1,0 +1,11 @@
+{
+  "id": "mail_001",
+  "received_at": "2026-09-22T19:12:00+08:00",
+  "from": "csie-assoc@example.edu",
+  "to": "student@example.edu",
+  "subject": "【系學會】迎新茶會報名開放",
+  "body": "各位同學好：\n\n本學期迎新茶會將於 10/05（週一）晚間 18:30 於系館 1F 大廳舉行，報名表單請見系學會社群。\n\n系學會敬上",
+  "labels": ["announcement"],
+  "expected_classification": "unrelated",
+  "note": "Fixture for classification testing: must NOT produce a facility override."
+}

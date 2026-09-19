@@ -1,0 +1,18 @@
+{
+  "id": "mail_002",
+  "received_at": "2026-09-22T16:40:00+08:00",
+  "from": "facility@example.edu",
+  "to": "student@example.edu",
+  "subject": "【總務處】圖書館前廣場人行道整修施工公告",
+  "body": "為改善排水，圖書館前廣場靠系館側人行道（含旁側階梯步道）自 9/23 起封閉施工，施工期間請改走圖書館側有頂蓋走廊。預計 9/26 恢復。\n\n總務處營繕組",
+  "labels": ["facility", "construction"],
+  "expected_classification": "facility_notice",
+  "expected_override": {
+    "target_id": "e_009",
+    "status": "closed",
+    "reason": "人行道整修施工",
+    "valid_from": "2026-09-23T00:00:00+08:00",
+    "valid_to": "2026-09-26T23:59:00+08:00"
+  },
+  "note": "Fixture: closes the stairs shortcut. Should not change a crutches route, which already avoids stairs."
+}

@@ -7,3 +7,13 @@ node_modules/
 dist/
 coverage/
 .DS_Store
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Runtime artefacts from the fixture mailbox
+data/outbox/

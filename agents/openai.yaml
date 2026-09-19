@@ -1,0 +1,4 @@
+interface:
+  display_name: "CampusPulse Pipeline"
+  short_description: "分階段建置與驗收 CampusPulse 校園行程 Agent"
+  default_prompt: "Use $campuspulse-pipeline to inspect this repository and implement the next safe, testable CampusPulse milestone."
