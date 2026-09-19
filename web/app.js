@@ -1,5 +1,5 @@
-// M0 shell: provider-mode badges, sim clock, commitments, signals, agent log.
-// The map and the decision timeline arrive in M3.
+// Provider-mode badges, sim clock, commitments, signals, the current plan with
+// its rejected alternatives, and the agent log. The map arrives in M3.
 
 const $ = (id) => document.getElementById(id);
 
@@ -94,6 +94,98 @@ function renderGraphSummary(graph) {
   }
 }
 
+const MODE_LABEL = {
+  walk: "步行",
+  youbike: "YouBike",
+  bus: "公車",
+  bus_lowfloor: "低地板公車",
+  paratransit: "復康巴士",
+};
+
+const hhmm = (iso) =>
+  new Date(iso).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+function renderPlan(snapshot) {
+  const host = $("plan");
+  const commitment = snapshot.next_commitment;
+  const plan = commitment ? snapshot.plans?.[commitment.id] : null;
+  const decision = snapshot.latest_decision;
+
+  host.replaceChildren();
+  if (!plan || plan.status === "infeasible") {
+    const p = document.createElement("p");
+    p.className = "status--infeasible";
+    p.textContent = decision?.rationale ?? "尚未產生計畫";
+    host.appendChild(p);
+  } else {
+    const sel = plan.selected;
+    const head = document.createElement("div");
+    head.className = "plan-head";
+    head.innerHTML =
+      `<span class="plan-mode">${MODE_LABEL[sel.mode] ?? sel.mode}</span>` +
+      `<span class="plan-times"><strong>${hhmm(sel.depart_at)}</strong> 出發 →` +
+      ` <strong>${hhmm(sel.conservative_eta)}</strong> 抵達</span>` +
+      `<span class="meta">需在 ${hhmm(commitment.start)} 前 ${commitment.importance}</span>`;
+    host.appendChild(head);
+
+    const legs = document.createElement("ul");
+    legs.className = "legs";
+    for (const leg of sel.legs) {
+      const li = document.createElement("li");
+      const detail = [leg.from_node + " → " + leg.to_node, ...leg.notes].join("・");
+      li.innerHTML =
+        `<span class="dur">${MODE_LABEL[leg.mode] ?? leg.mode} ${Math.round(leg.seconds / 60)}分</span>` +
+        `<span class="meta">${detail}</span>`;
+      legs.appendChild(li);
+    }
+    host.appendChild(legs);
+
+    if (sel.risk_flags?.length) {
+      const flags = document.createElement("ul");
+      flags.className = "flags";
+      for (const flag of sel.risk_flags) {
+        const li = document.createElement("li");
+        li.textContent = "⚠ " + flag;
+        flags.appendChild(li);
+      }
+      host.appendChild(flags);
+    }
+  }
+
+  if (decision?.rationale) {
+    const why = document.createElement("p");
+    why.className = "rationale meta";
+    why.textContent = decision.rationale;
+    host.appendChild(why);
+  }
+
+  const rejected = $("rejected");
+  rejected.replaceChildren();
+  for (const item of decision?.rejected ?? []) {
+    const li = document.createElement("li");
+    li.innerHTML =
+      `<strong>${MODE_LABEL[item.mode] ?? item.mode}</strong>` +
+      `<div class="meta">${item.reason}</div>`;
+    rejected.appendChild(li);
+  }
+  if (!rejected.children.length) rejected.innerHTML = '<li class="meta">—</li>';
+
+  const assumptions = $("assumptions");
+  assumptions.replaceChildren();
+  for (const item of decision?.assumptions ?? []) {
+    const li = document.createElement("li");
+    li.className = "meta";
+    li.textContent = item;
+    assumptions.appendChild(li);
+  }
+  if (decision?.next_check_at) {
+    const li = document.createElement("li");
+    li.className = "meta";
+    li.textContent = `下次檢查 ${hhmm(decision.next_check_at)}`;
+    assumptions.appendChild(li);
+  }
+}
+
 function appendLog(entry) {
   const host = $("agent-log");
   const li = document.createElement("li");
@@ -123,6 +215,7 @@ async function refresh() {
   renderClock(snapshot);
   renderCommitments(snapshot);
   renderSignals(snapshot);
+  renderPlan(snapshot);
   renderLog(snapshot);
   renderGraphSummary(graph);
 }
@@ -132,7 +225,7 @@ function connectStream() {
   source.onmessage = (message) => {
     const event = JSON.parse(message.data);
     if (event.type === "agent_log") appendLog(event.data);
-    if (event.type === "clock" || event.type === "plan" || event.type === "trigger") refresh();
+    if (["clock", "plan", "trigger", "decision"].includes(event.type)) refresh();
   };
   source.onerror = () => {
     // EventSource reconnects on its own; surface the gap rather than hiding it.

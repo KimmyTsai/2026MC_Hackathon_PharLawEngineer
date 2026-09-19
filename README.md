@@ -38,9 +38,11 @@ uv pip install --python .venv\Scripts\python.exe -r requirements.txt
 | `GET /graph` | 圖資 + 目前生效的設施狀態覆寫 |
 | `GET /events` | SSE：Agent 紀錄、計畫變更、觸發事件 |
 | `POST /replay/start` | 載入情境（`{"scenario":"demo_wed","speed":60}`） |
-| `POST /replay/advance` | 推進模擬時間（`{"seconds":300}` 或 `{"to":"2026-09-23T08:20:00+08:00"}`） |
+| `POST /replay/advance` | 推進模擬時間（`{"seconds":300}` 或 `{"to":"2026-09-23T08:20:00+08:00"}`）；會感知期間發生的事件並重新規劃 |
+| `POST /plan` | 以目前模擬時間重新規劃，回傳計畫與決策紀錄 |
 | `POST /replay/inject` | 回放中插入事件（評審現場回報） |
 | `POST /replay/reset` | 一鍵重設回放 |
+| `POST /replay/inject` 的 `at` | 省略即為「現在」，會立刻被感知；給未來時間則等時鐘走到 |
 | `POST /schedule` `POST /report` `POST /confirm/{id}` | 尚未實作，回 501 並註明由哪個里程碑交付 |
 
 ## Test

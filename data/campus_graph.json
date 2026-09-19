@@ -284,6 +284,15 @@
       "updated_at": "2026-09-19"
     },
     {
+      "id": "e_032",
+      "from": "HOME_OFFCAMPUS",
+      "to": "JCT_01",
+      "length_m": 2200,
+      "slope": "flat",
+      "source": "official_map",
+      "updated_at": "2026-09-19"
+    },
+    {
       "id": "e_003",
       "from": "BUS_STOP_CHENGDA",
       "to": "JCT_01",

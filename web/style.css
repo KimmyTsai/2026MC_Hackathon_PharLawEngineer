@@ -61,12 +61,13 @@ body {
 
 @media (min-width: 900px) {
   .layout {
-    grid-template-columns: 1.4fr 1fr;
-    grid-template-areas: "map timeline" "map log";
+    grid-template-columns: 1.3fr 1fr;
+    grid-template-areas: "map timeline" "plan timeline" "plan log";
     align-items: start;
   }
-  .panel--map { grid-area: map; min-height: 60vh; }
+  .panel--map { grid-area: map; min-height: 34vh; }
   .panel--timeline { grid-area: timeline; }
+  .panel--plan { grid-area: plan; }
   .panel--log { grid-area: log; }
 }
 
@@ -128,3 +129,17 @@ dd { margin: 0; }
   .badge { background: #21252c; }
   button { background: #21252c; color: var(--ink); }
 }
+
+/* plan panel */
+.plan-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.plan-mode { font-size: 18px; font-weight: 650; }
+.plan-times { font-variant-numeric: tabular-nums; }
+.plan-times strong { font-size: 17px; }
+.legs { list-style: none; margin: 10px 0 0; padding: 0; font-size: 13px; }
+.legs li { display: grid; grid-template-columns: 5.5em 1fr; gap: 8px; padding: 4px 0; }
+.legs .dur { color: var(--muted); font-variant-numeric: tabular-nums; }
+.flags { margin: 10px 0 0; padding: 0; list-style: none; font-size: 12.5px; }
+.flags li { color: var(--stale); padding: 2px 0; }
+.status--infeasible { color: #c0392b; font-weight: 600; }
+.rationale { margin: 8px 0 0; font-size: 13px; }
+.log { max-height: 34vh; overflow-y: auto; }

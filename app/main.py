@@ -1,8 +1,10 @@
 """FastAPI entrypoint.
 
-Endpoints implemented at M0: /health, /state, /graph, /events (SSE), and the
-replay controls. /schedule, /report and /confirm answer 501 with the milestone
-that will implement them, so the API surface is visible but never pretends.
+Implemented: /health, /state, /graph, /events (SSE), /plan and the replay
+controls. Advancing the replay clock perceives due events and re-plans, so the
+whole demo arc is reachable over HTTP. /schedule, /report and /confirm answer
+501 with the milestone that will implement them, so the API surface is visible
+but never pretends.
 """
 
 from __future__ import annotations
@@ -167,6 +169,8 @@ def replay_start(body: ReplayStartRequest, request: Request) -> dict[str, Any]:
         state.clock.start()
     state.log("perceive", f"回放情境 {state.scenario.name} 已重設至 "
                           f"{state.clock.now():%H:%M}")
+    state.apply_due_events(state.clock.now())
+    state.replan()
     return {"scenario": state.scenario.name, "now": state.clock.now().isoformat(),
             "speed": state.clock.speed, "running": state.clock.running,
             "events": len(state.scenario.events)}
@@ -197,7 +201,34 @@ def replay_advance(body: AdvanceRequest, request: Request) -> dict[str, Any]:
         raise HTTPException(400, "provide seconds or to")
     now = state.clock.now()
     state.bus.publish({"type": "clock", "data": {"now": now.isoformat()}})
-    return {"now": now.isoformat()}
+    triggers = state.apply_due_events(now)
+    commitment = state.next_commitment(now)
+    current = state.plans.get(commitment.id) if commitment else None
+    recheck_due = current is None or (
+        current.next_check_at is not None and now >= current.next_check_at
+    )
+    if triggers or recheck_due:
+        state.replan(triggers[-1] if triggers else None)
+    plan = state.plans.get(commitment.id) if commitment else None
+    return {
+        "now": now.isoformat(),
+        "events_processed": len(triggers),
+        "plan": plan.model_dump(mode="json") if plan else None,
+    }
+
+
+@app.post("/plan")
+def recompute_plan(request: Request) -> dict[str, Any]:
+    """Force a recompute at the current simulated time."""
+    state = agent(request)
+    state.apply_due_events(state.clock.now())
+    plan = state.replan()
+    decision = state.decisions[-1] if state.decisions else None
+    return {
+        "now": state.clock.now().isoformat(),
+        "plan": plan.model_dump(mode="json") if plan else None,
+        "decision": decision.model_dump(mode="json") if decision else None,
+    }
 
 
 class InjectRequest(BaseModel):
@@ -214,10 +245,16 @@ def replay_inject(body: InjectRequest, request: Request) -> dict[str, Any]:
         parsed = datetime.fromisoformat(body.at)
         at = parsed if parsed.tzinfo else parsed.replace(tzinfo=at.tzinfo)
     event = ScenarioEvent(at=at, type=body.type, payload=body.payload, expect="live injection")
-    state.scenario.inject(event)
     state.log("perceive", f"現場注入事件 {event.type} @ {at:%H:%M}", tool="replay_inject",
               tool_args={"type": event.type, "payload": event.payload})
-    return {"injected": event.type, "at": at.isoformat()}
+    trigger = state.inject_event(event)
+    if trigger is not None:
+        state.replan(trigger)
+    return {
+        "injected": event.type,
+        "at": at.isoformat(),
+        "perceived": trigger is not None,
+    }
 
 
 @app.post("/replay/reset")

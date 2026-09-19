@@ -11,6 +11,7 @@ import asyncio
 from datetime import datetime, time
 from typing import Any
 
+from app.agent.planner import PlanningInputs, plan_for
 from app.clock import SimClock
 from app.config import Settings
 from app.graph.loader import CampusGraph
@@ -19,6 +20,7 @@ from app.models import (
     AgentLogEntry,
     Commitment,
     DecisionRecord,
+    FacilityStatus,
     Plan,
     PlanStatus,
     ProposedAction,
@@ -26,7 +28,7 @@ from app.models import (
     Trigger,
 )
 from app.sources.registry import ProviderRegistry
-from app.sources.scenario import Scenario
+from app.sources.scenario import EVENT_SIGNAL_KIND, Scenario, ScenarioEvent
 
 
 class EventBus:
@@ -113,6 +115,7 @@ class AgentState:
         self.agent_log: list[AgentLogEntry] = []
         self.handled_events: int = 0
         self._step = 0
+        self._processed_until: datetime = scenario.start_at
 
     # -- lifecycle -----------------------------------------------------------
     def reset(self) -> None:
@@ -131,6 +134,7 @@ class AgentState:
         self.agent_log.clear()
         self.handled_events = 0
         self._step = 0
+        self._processed_until = self.scenario.start_at
 
     # -- logging -------------------------------------------------------------
     def log(
@@ -173,6 +177,110 @@ class AgentState:
         self.plans[plan.commitment_id] = plan
         self.bus.publish({"type": "plan", "data": plan.model_dump(mode="json")})
 
+    # -- perception and planning ---------------------------------------------
+    def _apply_notice(self, event: ScenarioEvent) -> None:
+        """Turn a facility notice into an override.
+
+        M1 reads the `expected_override` block the fixture carries. M2 replaces
+        this with Gemini extraction from the mail body; the fixture block then
+        becomes the manual fallback required by pipeline.md Stage 2.
+        """
+        mail_id = event.payload.get("mail_id")
+        if not mail_id:
+            return
+        message = getattr(self.providers.mailbox, "get_message", lambda _: None)(mail_id)
+        if not message:
+            self.log("perceive", f"公告 {mail_id} 讀不到，略過", tool="mailbox")
+            return
+        override = message.get("expected_override")
+        if not override:
+            self.log(
+                "perceive",
+                f"公告 {mail_id}「{message.get('subject', '')}」與設施無關，不改變任何狀態",
+                tool="fixture_notice_extraction",
+            )
+            return
+        valid_to = override.get("valid_to")
+        self.facilities.from_notice(
+            target_id=override["target_id"],
+            status=FacilityStatus(override["status"]),
+            reason=override["reason"],
+            source_ref=mail_id,
+            valid_from=datetime.fromisoformat(override["valid_from"]),
+            valid_to=datetime.fromisoformat(valid_to) if valid_to else None,
+            recorded_at=event.at,
+        )
+        self.log(
+            "perceive",
+            f"公告 {mail_id}：{override['target_id']} {override['status']}（{override['reason']}）",
+            tool="fixture_notice_extraction",
+            tool_args={"mail_id": mail_id},
+            tool_result_digest=f"{override['target_id']}={override['status']}",
+        )
+
+    def process_event(self, event: ScenarioEvent) -> Trigger:
+        """Perceive one event: update state, record the trigger, log it."""
+        if event.type == "notice_received":
+            self._apply_notice(event)
+        trigger = Trigger(
+            kind=EVENT_SIGNAL_KIND.get(event.type, "manual"),
+            new_value=event.payload or None,
+            materiality=event.expect or event.type,
+            observed_at=event.at,
+        )
+        self.record_trigger(trigger)
+        self.log("perceive", f"事件 {event.type} @ {event.at:%H:%M}", tool="scenario")
+        self.handled_events += 1
+        return trigger
+
+    def apply_due_events(self, until: datetime | None = None) -> list[Trigger]:
+        """Process scenario events whose time has passed. Returns the triggers."""
+        until = until or self.clock.now()
+        triggers = [
+            self.process_event(event)
+            for event in self.scenario.events_between(self._processed_until, until)
+        ]
+        self._processed_until = until
+        return triggers
+
+    def inject_event(self, event: ScenarioEvent) -> Trigger | None:
+        """Add an event during a demo and perceive it right away when it is due.
+
+        The scheduled window is (processed, until], so an event stamped with the
+        current instant would otherwise never be picked up — which is exactly
+        the case when a judge uploads a photo on stage.
+        """
+        self.scenario.inject(event)
+        if event.at <= self._processed_until:
+            return self.process_event(event)
+        return None
+
+    def replan(self, trigger: Trigger | None = None) -> Plan | None:
+        """Recompute the plan for the next commitment. Deterministic in M1."""
+        commitment = self.next_commitment()
+        if commitment is None:
+            return None
+        now = self.clock.now()
+        inputs = PlanningInputs(
+            graph=self.graph,
+            facilities=self.facilities,
+            profile=self.scenario.user.profile,
+            origin=self.scenario.user.home_node,
+            signals=self.providers.fetch_all(now),
+            now=now,
+        )
+        previous = self.plans.get(commitment.id)
+        plan, decision = plan_for(inputs, commitment, trigger=trigger, previous=previous)
+        self.record_decision(decision)
+        if plan is not None:
+            self.set_plan(plan)
+            self.log("plan", decision.rationale)
+        else:
+            if previous is not None:
+                previous.status = PlanStatus.infeasible
+            self.log("plan", decision.rationale)
+        return plan
+
     # -- views ---------------------------------------------------------------
     def next_commitment(self, now: datetime | None = None) -> Commitment | None:
         now = now or self.clock.now()
@@ -214,6 +322,9 @@ class AgentState:
             },
             "provider_modes": self.providers.modes(now),
             "agent_log": [e.model_dump(mode="json") for e in self.agent_log[-50:]],
+            "latest_decision": (
+                self.decisions[-1].model_dump(mode="json") if self.decisions else None
+            ),
             "decisions": [d.model_dump(mode="json") for d in self.decisions[-10:]],
             "triggers": [t.model_dump(mode="json") for t in self.triggers[-10:]],
         }
