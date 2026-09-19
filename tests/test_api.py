@@ -304,3 +304,17 @@ def test_the_report_button_path_marks_a_point_for_the_map(client):
     assert body["perceived"] is True
     graph = client.get("/graph").json()
     assert "RAMP_07" not in graph["blocked_ids"]
+
+
+def test_health_warns_about_a_maps_key_in_the_gemini_key_list(client, settings):
+    """A standard AIza key cannot call the Gemini API whatever its restrictions
+    say, so it must be caught here rather than at request time."""
+    body = client.get("/health").json()
+    assert body["warnings"] == []  # the repo's own keys are the right type
+
+    from app.config import Settings
+
+    mixed = Settings(gemini_api_keys=["AQ.Ab8_real", "AIzaSyStandardKey"])
+    warnings = mixed.gemini_key_warnings()
+    assert len(warnings) == 1
+    assert "MAPS_API_KEY.txt" in warnings[0]

@@ -68,6 +68,17 @@ Agent 迴圈用 Gemini function calling：模型判斷要不要改計畫、該�
 ecord_cassette.py --model gemini-3.1-flash-lite
 ```
 
+### 兩種金鑰，不能混用
+
+Google 把金鑰分成兩類，**一把金鑰不能同時做 Gemini 和 Maps**：
+
+| 用途 | 格式 | 放哪 | 怎麼申請 |
+| --- | --- | --- | --- |
+Gemini | `AQ.Ab8…`（驗證金鑰） | `GEMINI_API_KEY.txt`，一行一把 | <https://aistudio.google.com/apikey> |
+Maps | `AIzaSy…`（標準金鑰） | `MAPS_API_KEY.txt` | Cloud Console →「憑證」→ 建立 API 金鑰 |
+
+把標準金鑰放進 `GEMINI_API_KEY.txt` 會被 `/health` 的 `warnings` 指出來，不會等到呼叫失敗才發現。兩個檔案都被 git 忽略。
+
 ### 多把金鑰
 
 金鑰檔（`API` / `API.txt` / `GEMINI_API_KEY.txt`）可以一行放一把。免費額度是**按專案**計算的，所以第二個專案的金鑰等於多一份每日額度：

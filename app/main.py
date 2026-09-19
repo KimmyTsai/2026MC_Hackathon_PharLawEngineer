@@ -79,6 +79,8 @@ def health(request: Request) -> dict[str, Any]:
         },
         "commitments": len(state.commitments),
         "agent": state.agent_info(),
+        "maps_key": state.settings.has_maps,
+        "warnings": state.settings.gemini_key_warnings(),
         "provider_modes": state.providers.modes(now),
         "sse_subscribers": state.bus.subscriber_count,
     }
