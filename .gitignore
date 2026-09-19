@@ -17,3 +17,9 @@ __pycache__/
 
 # Runtime artefacts from the fixture mailbox
 data/outbox/
+
+# API keys — any file whose name says so, plus the two legacy names
+GEMINI_API_KEY.txt
+*API_KEY*
+*api_key*
+*.key

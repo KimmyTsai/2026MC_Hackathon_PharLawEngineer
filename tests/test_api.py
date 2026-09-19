@@ -185,3 +185,56 @@ def test_an_event_injected_in_the_future_waits_for_the_clock(client):
 
     client.post("/replay/advance", json={"to": "2026-09-23T08:31:00+08:00"})
     assert "e_009" in client.get("/graph").json()["blocked_ids"]
+
+
+# --------------------------------------------------------------------------- #
+# M2: the agent over HTTP (with the model stubbed out — see conftest)
+# --------------------------------------------------------------------------- #
+def test_health_says_whether_the_agent_can_reach_a_model(client):
+    agent = client.get("/health").json()["agent"]
+    assert agent["available"] is False  # conftest forbids network calls
+    assert "測試環境" in agent["reason"]
+    assert agent["replaying"] is False
+    assert client.get("/state").json()["agent"] == agent
+
+
+def test_plan_reports_how_the_agent_ran(client):
+    client.post("/replay/reset")
+    body = client.post("/plan").json()
+    assert body["agent"]["fell_back"] is True
+    assert body["agent"]["tool_calls"] == []
+    assert body["plan"] is not None  # no model, still a plan
+
+
+def test_next_jumps_to_the_next_event(client):
+    client.post("/replay/start", json={})
+    first = client.post("/replay/next").json()
+    assert first["now"].startswith("2026-09-23T07:50")
+    assert first["event"]["type"] == "day_start"
+
+    second = client.post("/replay/next").json()
+    assert second["now"].startswith("2026-09-23T08:05")
+    assert second["event"]["type"] == "notice_received"
+    assert client.get("/graph").json()["blocked_ids"] == ["CSIE_W_ELEV"]
+
+
+def test_next_walks_the_whole_scenario_then_stops(client):
+    client.post("/replay/start", json={})
+    seen = []
+    for _ in range(20):
+        body = client.post("/replay/next").json()
+        if body["done"]:
+            break
+        seen.append(body["event"]["type"])
+    assert seen[0] == "day_start"
+    assert "flood_warning" in seen
+    assert seen[-1] == "user_not_departed"
+    assert client.post("/replay/next").json()["done"] is True
+
+
+def test_the_agent_log_records_which_path_decided(client):
+    client.post("/replay/start", json={})
+    client.post("/replay/next")
+    log = client.get("/state").json()["agent_log"]
+    assert any(entry["model_id"] is None for entry in log)  # deterministic path
+    assert all(entry["phase"] in {"perceive", "plan", "act", "reflect"} for entry in log)

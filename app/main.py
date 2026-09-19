@@ -78,6 +78,7 @@ def health(request: Request) -> dict[str, Any]:
             "rooms": len(state.graph.rooms),
         },
         "commitments": len(state.commitments),
+        "agent": state.agent_info(),
         "provider_modes": state.providers.modes(now),
         "sse_subscribers": state.bus.subscriber_count,
     }
@@ -170,7 +171,7 @@ def replay_start(body: ReplayStartRequest, request: Request) -> dict[str, Any]:
     state.log("perceive", f"回放情境 {state.scenario.name} 已重設至 "
                           f"{state.clock.now():%H:%M}")
     state.apply_due_events(state.clock.now())
-    state.replan()
+    state.run_agent()
     return {"scenario": state.scenario.name, "now": state.clock.now().isoformat(),
             "speed": state.clock.speed, "running": state.clock.running,
             "events": len(state.scenario.events)}
@@ -208,7 +209,7 @@ def replay_advance(body: AdvanceRequest, request: Request) -> dict[str, Any]:
         current.next_check_at is not None and now >= current.next_check_at
     )
     if triggers or recheck_due:
-        state.replan(triggers[-1] if triggers else None)
+        state.run_agent(triggers[-1] if triggers else None)
     plan = state.plans.get(commitment.id) if commitment else None
     return {
         "now": now.isoformat(),
@@ -222,12 +223,57 @@ def recompute_plan(request: Request) -> dict[str, Any]:
     """Force a recompute at the current simulated time."""
     state = agent(request)
     state.apply_due_events(state.clock.now())
-    plan = state.replan()
+    run = state.run_agent()
     decision = state.decisions[-1] if state.decisions else None
     return {
         "now": state.clock.now().isoformat(),
-        "plan": plan.model_dump(mode="json") if plan else None,
+        "plan": run.plan.model_dump(mode="json") if run.plan else None,
         "decision": decision.model_dump(mode="json") if decision else None,
+        "agent": {
+            "model": run.model_id or None,
+            "steps": run.steps,
+            "tool_calls": run.tool_calls,
+            "fell_back": run.fell_back,
+            "fallback_reason": run.fallback_reason,
+            "tokens": {"input": run.input_tokens, "output": run.output_tokens},
+        },
+    }
+
+
+@app.post("/replay/next")
+def replay_next(request: Request) -> dict[str, Any]:
+    """Jump to the next unprocessed scenario event and let the agent react.
+
+    The demo uses this rather than a fixed +5 min step: cassette keys include the
+    simulated time, so landing exactly on event times is what makes a recorded
+    run replay instead of spending quota.
+    """
+    state = agent(request)
+    now = state.clock.now()
+    upcoming = [e for e in state.scenario.events if e.at > now]
+    if not upcoming:
+        return {"now": now.isoformat(), "done": True, "event": None, "plan": None}
+
+    target = upcoming[0].at
+    state.clock.advance_to(target)
+    state.bus.publish({"type": "clock", "data": {"now": target.isoformat()}})
+    triggers = state.apply_due_events(target)
+    run = state.run_agent(triggers[-1] if triggers else None)
+    commitment = state.next_commitment(target)
+    plan = state.plans.get(commitment.id) if commitment else None
+    return {
+        "now": target.isoformat(),
+        "done": False,
+        "event": {"type": upcoming[0].type, "expect": upcoming[0].expect},
+        "events_processed": len(triggers),
+        "plan": plan.model_dump(mode="json") if plan else None,
+        "agent": {
+            "model": run.model_id or None,
+            "steps": run.steps,
+            "tool_calls": run.tool_calls,
+            "fell_back": run.fell_back,
+            "fallback_reason": run.fallback_reason,
+        },
     }
 
 
@@ -249,7 +295,7 @@ def replay_inject(body: InjectRequest, request: Request) -> dict[str, Any]:
               tool_args={"type": event.type, "payload": event.payload})
     trigger = state.inject_event(event)
     if trigger is not None:
-        state.replan(trigger)
+        state.run_agent(trigger)
     return {
         "injected": event.type,
         "at": at.isoformat(),

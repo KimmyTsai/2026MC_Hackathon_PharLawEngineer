@@ -11,6 +11,8 @@ import asyncio
 from datetime import datetime, time
 from typing import Any
 
+from app.agent.llm import LLM, build_llm
+from app.agent.orchestrator import AgentRun, Orchestrator
 from app.agent.planner import PlanningInputs, plan_for
 from app.clock import SimClock
 from app.config import Settings
@@ -98,6 +100,7 @@ class AgentState:
         facilities: FacilityStatusStore,
         providers: ProviderRegistry,
         bus: EventBus,
+        llm: LLM | None = None,
     ) -> None:
         self.settings = settings
         self.scenario = scenario
@@ -106,6 +109,7 @@ class AgentState:
         self.facilities = facilities
         self.providers = providers
         self.bus = bus
+        self.llm = llm or build_llm(settings)
 
         self.commitments: list[Commitment] = commitments_from_scenario(scenario, graph)
         self.plans: dict[str, Plan] = {}
@@ -255,6 +259,20 @@ class AgentState:
             return self.process_event(event)
         return None
 
+    def agent_info(self) -> dict[str, Any]:
+        """What the badge shows. Never implies a live call that did not happen."""
+        return {
+            "model": self.llm.model_id or None,
+            "available": bool(getattr(self.llm, "available", False)),
+            "reason": getattr(self.llm, "reason", None),
+            "mode": getattr(self.llm, "mode", "live"),
+            "replaying": bool(getattr(self.llm, "replaying", False)),
+        }
+
+    def run_agent(self, trigger: Trigger | None = None) -> AgentRun:
+        """The Gemini loop, with the deterministic planner as the fallback."""
+        return Orchestrator(self, self.llm).run(trigger)
+
     def replan(self, trigger: Trigger | None = None) -> Plan | None:
         """Recompute the plan for the next commitment. Deterministic in M1."""
         commitment = self.next_commitment()
@@ -321,6 +339,7 @@ class AgentState:
                 for kind, signal in signals.items()
             },
             "provider_modes": self.providers.modes(now),
+            "agent": self.agent_info(),
             "agent_log": [e.model_dump(mode="json") for e in self.agent_log[-50:]],
             "latest_decision": (
                 self.decisions[-1].model_dump(mode="json") if self.decisions else None

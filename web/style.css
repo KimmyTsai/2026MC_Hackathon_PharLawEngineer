@@ -143,3 +143,37 @@ dd { margin: 0; }
 .status--infeasible { color: #c0392b; font-weight: 600; }
 .rationale { margin: 8px 0 0; font-size: 13px; }
 .log { max-height: 34vh; overflow-y: auto; }
+
+/* agent log */
+.phase {
+  display: inline-block;
+  min-width: 2.6em;
+  margin-right: 5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  background: #eceef2;
+  color: var(--muted);
+}
+.log-act .phase { background: color-mix(in srgb, var(--accent) 16%, white); color: var(--accent); }
+.log-plan .phase { background: color-mix(in srgb, var(--fixture) 16%, white); color: var(--fixture); }
+.log-reflect .phase { background: color-mix(in srgb, var(--live) 14%, white); color: var(--live); }
+.digest {
+  margin-top: 3px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: #f3f4f7;
+  color: var(--muted);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.log code { font-size: 11.5px; }
+
+@media (prefers-color-scheme: dark) {
+  .phase { background: #262b33; }
+  .digest { background: #1f242b; }
+}

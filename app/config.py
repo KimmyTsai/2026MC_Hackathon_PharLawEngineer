@@ -39,12 +39,46 @@ class Settings(BaseSettings):
     tdx_client_id: str | None = None
     tdx_client_secret: str | None = None
 
+    # cache = replay a recorded turn, else call and record (free tier is 20
+    # requests per day per model). live = always call. replay = cassette only.
+    # off = never call a model; the deterministic planner decides.
+    agent_mode: str = "cache"
+    cassette: str = "demo_wed"
+    # Waiting out a per-minute quota is right when recording, wrong in a web
+    # request. scripts/record_cassette.py raises this.
+    quota_retries: int = 0
+
     use_gemma: bool = False
     ollama_model: str | None = None
     ollama_host: str = "http://127.0.0.1:11434"
 
     data_dir: Path = Field(default=REPO_ROOT / "data")
     web_dir: Path = Field(default=REPO_ROOT / "web")
+
+    def model_post_init(self, _context: object) -> None:
+        """Fall back to a git-ignored key file when no env var is set.
+
+        Mirrors what scripts/test-ai-studio.mjs does, so a teammate who dropped
+        the key in a file instead of .env still gets a working app. Never log or
+        echo the value.
+        """
+        if self.gemini_api_key:
+            return
+        for name in ("API", "API.txt", "GEMINI_API_KEY.txt"):
+            candidate = REPO_ROOT / name
+            if candidate.exists():
+                value = candidate.read_text(encoding="utf-8-sig").strip()
+                if value:
+                    object.__setattr__(self, "gemini_api_key", value)
+                    return
+
+    @property
+    def cassette_path(self) -> Path:
+        return self.data_dir / "agent_cassettes" / f"{self.cassette}.json"
+
+    @property
+    def has_gemini(self) -> bool:
+        return bool(self.gemini_api_key)
 
     @property
     def scenario_path(self) -> Path:

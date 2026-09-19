@@ -21,6 +21,14 @@ function renderBadges(snapshot) {
   const host = $("badges");
   host.replaceChildren();
   host.appendChild(badge(snapshot.mode === "live" ? "LIVE 模式" : "回放模式", "mode"));
+  const agent = snapshot.agent ?? {};
+  if (!agent.available) {
+    host.appendChild(badge(`Agent: 確定性規劃（${agent.reason ?? "模型不可用"}）`, "unavailable"));
+  } else if (agent.replaying) {
+    host.appendChild(badge(`Agent: ${agent.model}（錄音重播）`, "fixture"));
+  } else {
+    host.appendChild(badge(`Agent: ${agent.model}（即時呼叫）`, "live"));
+  }
   for (const [name, mode] of Object.entries(snapshot.provider_modes ?? {})) {
     host.appendChild(badge(`${name}: ${FRESHNESS_LABEL[mode] ?? mode}`, mode));
   }
@@ -194,9 +202,16 @@ function appendLog(entry) {
     minute: "2-digit",
     hour12: false,
   });
+  const PHASE_LABEL = { perceive: "感知", plan: "規劃", act: "行動", reflect: "檢視" };
+  li.className = `log-${entry.phase}`;
   li.innerHTML =
-    `<strong>${entry.phase}</strong> ${entry.summary}` +
-    `<div class="meta">${at}${entry.tool ? `・工具 ${entry.tool}` : ""}</div>`;
+    `<span class="phase">${PHASE_LABEL[entry.phase] ?? entry.phase}</span> ${entry.summary}` +
+    `<div class="meta">${at}` +
+    `${entry.tool ? `・工具 <code>${entry.tool}</code>` : ""}` +
+    `${entry.model_id ? `・${entry.model_id}` : "・程式"}</div>` +
+    (entry.tool_result_digest
+      ? `<div class="digest">${entry.tool_result_digest.replace(/</g, "&lt;")}</div>`
+      : "");
   host.appendChild(li);
   host.scrollTop = host.scrollHeight;
 }
@@ -235,6 +250,11 @@ function connectStream() {
 
 $("btn-reset").addEventListener("click", async () => {
   await fetch("/replay/reset", { method: "POST" });
+  await refresh();
+});
+
+$("btn-next").addEventListener("click", async () => {
+  await fetch("/replay/next", { method: "POST" });
   await refresh();
 });
 

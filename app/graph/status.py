@@ -69,6 +69,34 @@ class FacilityStatusStore:
             if o.status is not FacilityStatus.open and o.confidence < min_confidence
         }
 
+    def add_override(
+        self,
+        *,
+        target_id: str,
+        status: FacilityStatus,
+        reason: str,
+        source: Provenance,
+        valid_from: datetime,
+        valid_to: datetime | None = None,
+        recorded_at: datetime | None = None,
+        source_ref: str | None = None,
+        confidence: float = 1.0,
+    ) -> FacilityOverride:
+        """Generic entry point. `from_notice` / `from_report` are the named cases."""
+        return self.add(
+            FacilityOverride(
+                target_id=target_id,
+                status=status,
+                reason=reason,
+                source=source,
+                source_ref=source_ref,
+                confidence=confidence,
+                valid_from=valid_from,
+                valid_to=valid_to,
+                recorded_at=recorded_at,
+            )
+        )
+
     def from_notice(
         self,
         target_id: str,
@@ -80,18 +108,16 @@ class FacilityStatusStore:
         recorded_at: datetime,
         confidence: float = 1.0,
     ) -> FacilityOverride:
-        return self.add(
-            FacilityOverride(
-                target_id=target_id,
-                status=status,
-                reason=reason,
-                source=Provenance.notice,
-                source_ref=source_ref,
-                confidence=confidence,
-                valid_from=valid_from,
-                valid_to=valid_to,
-                recorded_at=recorded_at,
-            )
+        return self.add_override(
+            target_id=target_id,
+            status=status,
+            reason=reason,
+            source=Provenance.notice,
+            source_ref=source_ref,
+            confidence=confidence,
+            valid_from=valid_from,
+            valid_to=valid_to,
+            recorded_at=recorded_at,
         )
 
     def from_report(
@@ -104,16 +130,14 @@ class FacilityStatusStore:
         confidence: float,
         valid_to: datetime | None = None,
     ) -> FacilityOverride:
-        return self.add(
-            FacilityOverride(
-                target_id=target_id,
-                status=status,
-                reason=reason,
-                source=Provenance.user_report,
-                source_ref=source_ref,
-                confidence=confidence,
-                valid_from=recorded_at,
-                valid_to=valid_to,
-                recorded_at=recorded_at,
-            )
+        return self.add_override(
+            target_id=target_id,
+            status=status,
+            reason=reason,
+            source=Provenance.user_report,
+            source_ref=source_ref,
+            confidence=confidence,
+            valid_from=recorded_at,
+            valid_to=valid_to,
+            recorded_at=recorded_at,
         )

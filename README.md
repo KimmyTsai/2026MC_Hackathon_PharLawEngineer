@@ -39,11 +39,46 @@ uv pip install --python .venv\Scripts\python.exe -r requirements.txt
 | `GET /events` | SSE：Agent 紀錄、計畫變更、觸發事件 |
 | `POST /replay/start` | 載入情境（`{"scenario":"demo_wed","speed":60}`） |
 | `POST /replay/advance` | 推進模擬時間（`{"seconds":300}` 或 `{"to":"2026-09-23T08:20:00+08:00"}`）；會感知期間發生的事件並重新規劃 |
-| `POST /plan` | 以目前模擬時間重新規劃，回傳計畫與決策紀錄 |
+| `POST /plan` | 以目前模擬時間重新規劃，回傳計畫、決策紀錄與 Agent 步數 |
+| `POST /replay/next` | 跳到下一個情境事件並讓 Agent 反應（**Demo 用這個**，時間點才對得上錄音檔） |
 | `POST /replay/inject` | 回放中插入事件（評審現場回報） |
 | `POST /replay/reset` | 一鍵重設回放 |
 | `POST /replay/inject` 的 `at` | 省略即為「現在」，會立刻被感知；給未來時間則等時鐘走到 |
 | `POST /schedule` `POST /report` `POST /confirm/{id}` | 尚未實作，回 501 並註明由哪個里程碑交付 |
+
+## Agent（Gemini）
+
+Agent 迴圈用 Gemini function calling：模型判斷要不要改計畫、該叫哪個工具；**所有時間、距離、ETA 都由 `app/graph/router.py` 與 `app/agent/planner.py` 算**，模型只能引用。`send_email` 不在工具清單裡——對外動作只能進 `pending_confirmations`。
+
+### 免費額度是硬限制
+
+實測（2026-09-19）：
+
+| 限制 | 值 |
+| --- | --- |
+`GenerateRequestsPerDayPerProjectPerModel-FreeTier` | **每模型每天 20 次** |
+`GenerateRequestsPerMinutePerProjectPerModel-FreeTier` | 部分模型 **每分鐘 5 次** |
+`gemini-3.1-pro-preview` | 免費方案**沒有額度**，一律 429 |
+
+一次 Agent 迴圈要 2–6 次呼叫，也就是一天只能跑 4～8 次。所以 Demo 走錄音重播：
+
+```powershell
+# 錄音（每個模型有獨立的每日額度，可以換模型來錄）
+.venv\Scripts\python.exe scriptsecord_cassette.py --model gemini-3.1-flash-lite
+```
+
+`AGENT_MODE` 控制行為：
+
+| 值 | 行為 |
+| --- | --- |
+`cache`（預設） | 命中錄音檔就重播，沒有才呼叫並錄下來 |
+`replay` | 只用錄音檔；沒錄到就退化成確定性規劃（**Demo 用這個**） |
+`live` | 每次都呼叫，不讀不寫錄音檔 |
+`off` | 完全不呼叫模型 |
+
+改了 prompt、工具宣告、工具輸出格式或情境，就要重錄——錄音檔的鍵是這些東西的 hash，過期的錄音只會「未命中」然後退化，不會給錯的答案。
+
+模型不可用時（沒金鑰、額度用完、429），畫面上的 Agent badge 會顯示「確定性規劃」並附原因，計畫照樣產生。
 
 ## Test
 

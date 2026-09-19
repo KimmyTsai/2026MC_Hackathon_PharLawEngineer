@@ -8,6 +8,21 @@ from app.main import build_state
 from app.sources.scenario import load_scenario
 
 
+@pytest.fixture(autouse=True)
+def never_call_the_model(monkeypatch):
+    """No test may reach the Gemini API.
+
+    A key in .env would otherwise make every /replay/advance a paid network
+    call. Tests that exercise the agent loop pass their own scripted LLM into
+    AgentState instead (see tests/test_orchestrator.py).
+    """
+    from app.agent.llm import NullLLM
+
+    monkeypatch.setattr(
+        "app.agent.state.build_llm", lambda settings: NullLLM("測試環境不呼叫模型")
+    )
+
+
 @pytest.fixture
 def settings():
     return get_settings()
