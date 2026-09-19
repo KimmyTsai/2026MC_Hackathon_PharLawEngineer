@@ -106,6 +106,16 @@ $env:GEMINI_KEY_INDEX = 1   # 用第二把
 
 模型不可用時（沒金鑰、額度用完、429），畫面上的 Agent badge 會顯示「確定性規劃」並附原因，計畫照樣產生。
 
+## 圖資座標
+
+`data/campus_graph.json` 的座標**只影響地圖顯示，不影響任何 ETA** —— 路徑計算吃的是每段的 `length_m`。
+
+座標的來源記在檔案的 `coordinate_basis`：以 geocode 到的資訊系館屋頂為單一錨點，把整張手繪圖平移 78 公尺對齊上去，相對位置完全保留。Google 索引沒有入口、電梯、斜坡、路口、宿舍與公車站，那些仍是估計位置，所有節點標為 `coordinate_source: derived`，`draft` 維持 true 直到有人實地測繪。
+
+```powershell
+.venv\Scripts\python.exe scriptsix_graph_coordinates.py --dry-run
+```
+
 ## 底圖
 
 `MAP_PROVIDER` 控制底圖來源：

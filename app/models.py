@@ -143,6 +143,10 @@ class GraphNode(BaseModel):
     floors: list[int] | None = Field(default=None, description="elevator reachable floors")
     lat: float
     lng: float
+    # How the coordinate was obtained. `derived` means it was fitted onto
+    # geocoded anchors rather than surveyed — see data/campus_graph.json's
+    # coordinate_basis. Coordinates drive the map only; the router uses length_m.
+    coordinate_source: Literal["approximate", "derived", "geocoded", "surveyed"] = "approximate"
     step_free: bool = True
     source: Provenance = Provenance.official_map
     updated_at: str
@@ -170,6 +174,7 @@ class CampusGraphFile(BaseModel):
     draft: bool = True
     nodes: list[GraphNode]
     edges: list[GraphEdge]
+    coordinate_basis: dict[str, Any] | None = None
 
 
 class RoomRecord(BaseModel):

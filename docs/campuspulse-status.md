@@ -5,6 +5,13 @@
 - State: complete
 - Goal: the agent can prepare an outward-facing action but cannot perform one. `demo-and-acceptance.md` lists this as a must-pass item.
 
+## Coordinates: what geocoding could and could not fix (2026-09-19)
+- Google Geocoding gives **ROOFTOP** points for named buildings (資訊系館, 圖書館). It does **not** know entrances, elevators, ramps, junctions, dorms or bus stops: 學生宿舍 returns the campus centroid, and 成大公車站 returns `APPROXIMATE` with the address 「台灣臺南市」. Those were rejected, not used.
+- **A two-anchor similarity fit was tried and rejected.** Forcing both 資訊系館 and 圖書館 to land exactly produced a 45.9° rotation and a 1.102× scale, moving nodes 396 m on average and throwing the off-campus origin **1871 m**. On a Google basemap that would look authoritative while being a different kind of wrong.
+- **What was done instead**: a single-anchor translation. The whole layout moved 78 m so the CSIE group's centroid sits on its geocoded rooftop; every relative position is unchanged. The library group is still 230 m off, and that number is recorded in `coordinate_basis.residuals_after_translation` as a measurement of how far the hand-built layout is from reality.
+- Every node is labelled `coordinate_source: derived` — the anchor pins a group centroid, not any individual entrance or elevator. `draft: true` stays until someone surveys the campus (CLAUDE.md 12).
+- **This changed no ETA.** The router works from each edge's `length_m`; coordinates drive the map only. Verified: the cassette still replays with zero fallback after the move, because no tool result contains a coordinate.
+
 ## Basemap: Google Map Tiles (2026-09-19)
 - The key in `MAPS_API_KEY.txt` now reaches **Map Tiles API, Maps Static API and Geocoding**; Places is still blocked (not needed).
 - `MAP_PROVIDER=google` serves tiles through `/map/tiles/{z}/{x}/{y}.png`. Verified: `createSession` → token, tile returns a real 2520-byte PNG, second request is served from memory in 17 ms, and neither `/map/config` nor the page contains `key=`. Leaflet's attribution in the browser reads 「地圖資料 ©2026 Google」.

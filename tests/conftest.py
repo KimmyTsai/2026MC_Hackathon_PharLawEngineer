@@ -16,6 +16,9 @@ def isolated_outbox(tmp_path, monkeypatch):
     directory also see each other's messages.
     """
     monkeypatch.setenv("OUTBOX_PATH", str(tmp_path / "outbox"))
+    # A developer's .env may select the Google basemap; tests assert the
+    # default and must not depend on local configuration.
+    monkeypatch.setenv("MAP_PROVIDER", "osm")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()

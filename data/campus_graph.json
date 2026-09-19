@@ -1,126 +1,138 @@
 {
   "draft": true,
-  "note": "DRAFT. Topology is hand-built to exercise the planner; coordinates are approximate and MUST be corrected against the NCKU accessible-campus map (see CLAUDE.md 12) before any demo that claims real geography.",
+  "note": "DRAFT. One building anchor is geocoded and the hand-built layout is translated onto it; relative positions are unchanged and unsurveyed. Coordinates affect the map only - the planner uses each edge's length_m. See coordinate_basis.",
   "nodes": [
     {
       "id": "HOME_OFFCAMPUS",
       "name": "校外租屋處（合成地點）",
       "type": "offcampus",
-      "lat": 22.988,
-      "lng": 120.202,
+      "lat": 22.988286,
+      "lng": 120.201307,
       "step_free": true,
       "source": "user_report",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "BUS_STOP_HOME",
       "name": "住處附近公車站",
       "type": "stop",
-      "lat": 22.9884,
-      "lng": 120.2032,
+      "lat": 22.988686,
+      "lng": 120.202507,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "YB_ST_HOME",
       "name": "YouBike 住處站",
       "type": "bike_station",
-      "lat": 22.9882,
-      "lng": 120.2028,
+      "lat": 22.988486,
+      "lng": 120.202107,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "BUS_STOP_CHENGDA",
       "name": "成大站（大學路）",
       "type": "stop",
-      "lat": 22.9962,
-      "lng": 120.2172,
+      "lat": 22.996486,
+      "lng": 120.216507,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "YB_ST_GUANGFU",
       "name": "YouBike 光復校區站",
       "type": "bike_station",
-      "lat": 22.9955,
-      "lng": 120.216,
+      "lat": 22.995786,
+      "lng": 120.215307,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "DORM_A",
       "name": "學生宿舍 A 棟",
       "type": "dorm",
-      "lat": 22.9988,
-      "lng": 120.2196,
+      "lat": 22.999086,
+      "lng": 120.218907,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "JCT_01",
       "name": "大學路校門口路口",
       "type": "junction",
-      "lat": 22.9963,
-      "lng": 120.2178,
+      "lat": 22.996586,
+      "lng": 120.217107,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "JCT_02",
       "name": "圖書館前廣場路口",
       "type": "junction",
-      "lat": 22.9966,
-      "lng": 120.219,
+      "lat": 22.996886,
+      "lng": 120.218307,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "JCT_03",
       "name": "資訊系館前路口",
       "type": "junction",
-      "lat": 22.9969,
-      "lng": 120.2201,
+      "lat": 22.997186,
+      "lng": 120.219407,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "JCT_04",
       "name": "系館東側路口",
       "type": "junction",
-      "lat": 22.9975,
-      "lng": 120.2208,
+      "lat": 22.997786,
+      "lng": 120.220107,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "JCT_05",
       "name": "東側坡道上方路口",
       "type": "junction",
-      "lat": 22.9972,
-      "lng": 120.2215,
+      "lat": 22.997486,
+      "lng": 120.220807,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "RAMP_07",
       "name": "圖書館側無障礙斜坡",
       "type": "ramp",
-      "lat": 22.9967,
-      "lng": 120.2195,
+      "lat": 22.996986,
+      "lng": 120.218807,
       "step_free": true,
       "source": "photo_survey",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "CSIE_W_ENT",
@@ -128,11 +140,12 @@
       "type": "entrance",
       "building": "CSIE",
       "floor": 1,
-      "lat": 22.9969,
-      "lng": 120.221,
+      "lat": 22.997186,
+      "lng": 120.220307,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "CSIE_E_ENT",
@@ -140,11 +153,12 @@
       "type": "entrance",
       "building": "CSIE",
       "floor": 1,
-      "lat": 22.9971,
-      "lng": 120.2216,
+      "lat": 22.997386,
+      "lng": 120.220907,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "CSIE_S_ENT",
@@ -152,35 +166,50 @@
       "type": "entrance",
       "building": "CSIE",
       "floor": 1,
-      "lat": 22.9967,
-      "lng": 120.2212,
+      "lat": 22.996986,
+      "lng": 120.220507,
       "step_free": false,
       "source": "photo_survey",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "CSIE_W_ELEV",
       "name": "資訊系館西側電梯",
       "type": "elevator",
       "building": "CSIE",
-      "floors": [1, 2, 3, 4, 5],
-      "lat": 22.99692,
-      "lng": 120.22105,
+      "floors": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "lat": 22.997206,
+      "lng": 120.220357,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "CSIE_E_ELEV",
       "name": "資訊系館東側電梯",
       "type": "elevator",
       "building": "CSIE",
-      "floors": [1, 2, 3, 4, 5],
-      "lat": 22.99712,
-      "lng": 120.22162,
+      "floors": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "lat": 22.997406,
+      "lng": 120.220927,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "CSIE_1F_HALL",
@@ -188,11 +217,12 @@
       "type": "junction",
       "building": "CSIE",
       "floor": 1,
-      "lat": 22.997,
-      "lng": 120.2213,
+      "lat": 22.997286,
+      "lng": 120.220607,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "CSIE_4F_HALL",
@@ -200,11 +230,12 @@
       "type": "junction",
       "building": "CSIE",
       "floor": 4,
-      "lat": 22.997,
-      "lng": 120.2213,
+      "lat": 22.997286,
+      "lng": 120.220607,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "LIB_ENT",
@@ -212,23 +243,30 @@
       "type": "entrance",
       "building": "LIB",
       "floor": 1,
-      "lat": 22.9982,
-      "lng": 120.2189,
+      "lat": 22.998486,
+      "lng": 120.218207,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "LIB_ELEV",
       "name": "總圖書館電梯",
       "type": "elevator",
       "building": "LIB",
-      "floors": [1, 2, 3, 4],
-      "lat": 22.99822,
-      "lng": 120.21895,
+      "floors": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "lat": 22.998506,
+      "lng": 120.218257,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     },
     {
       "id": "LIB_3F_HALL",
@@ -236,11 +274,12 @@
       "type": "junction",
       "building": "LIB",
       "floor": 3,
-      "lat": 22.99822,
-      "lng": 120.21895,
+      "lat": 22.998506,
+      "lng": 120.218257,
       "step_free": true,
       "source": "official_map",
-      "updated_at": "2026-09-19"
+      "updated_at": "2026-09-19",
+      "coordinate_source": "derived"
     }
   ],
   "edges": [
@@ -532,5 +571,36 @@
       "source": "official_map",
       "updated_at": "2026-09-19"
     }
-  ]
+  ],
+  "coordinate_basis": {
+    "method": "single-anchor translation",
+    "anchor": "CSIE",
+    "geocoded_at": "2026-09-19",
+    "translation_m": 78,
+    "anchors": [
+      {
+        "prefix": "CSIE",
+        "query": "國立成功大學資訊工程學系",
+        "lat": 22.9972491,
+        "lng": 120.2206029,
+        "location_type": "ROOFTOP"
+      },
+      {
+        "prefix": "LIB",
+        "query": "國立成功大學圖書館",
+        "lat": 22.9999425,
+        "lng": 120.2198602,
+        "location_type": "ROOFTOP"
+      }
+    ],
+    "residuals_after_translation": [
+      {
+        "prefix": "LIB",
+        "residual_m": 230
+      }
+    ],
+    "rejected": "兩點相似變換：會產生 45.9 度旋轉與 1.102 倍縮放，節點平均位移 396 公尺、最大 1871 公尺。為了對齊兩個點而扭曲整張圖，不採用。",
+    "caveat": "只有錨點建築是 geocode 來的。入口、電梯、斜坡、路口、宿舍與公車站 Google 索引沒有，仍是手繪的估計位置，只是整體平移到了正確的錨點上。座標不影響 ETA：路徑計算使用每段的 length_m。",
+    "anchor_note": "錨點對齊的是 CSIE 群的中心，不是個別入口或電梯——那些仍是手放的相對位置。"
+  }
 }
