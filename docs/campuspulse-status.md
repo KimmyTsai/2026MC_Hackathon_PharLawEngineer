@@ -1,9 +1,19 @@
 # CampusPulse status
 
 ## Current stage
-- Stage: M3 — map, event timeline, decision panel
+- Stage: M5 — confirmation-gated email
 - State: complete
-- Goal: replaying `demo_wed.json` shows the route changing on a map, with the reason visible beside it.
+- Goal: the agent can prepare an outward-facing action but cannot perform one. `demo-and-acceptance.md` lists this as a must-pass item.
+
+## Evidence (M5)
+- `send_email` is **absent from the toolbox**; the model can only call `draft_email`, which creates a `ProposedAction` and returns `sent: false`. A test asserts the absence, so the boundary cannot be softened by editing a prompt.
+- Walking the whole scenario: at 08:25 the agent warns that the window is closing (still feasible, no draft); at 08:35 it drafts. The body carries computed facts — 「現在出發最快也要 09:26 才會到，比計算機組織需要抵達的 09:18 晚約 9 分鐘」 — not model guesses.
+- `GET /outbox` returns 0 until `POST /confirm/{id}` is called; confirming writes exactly one file; confirming again returns `duplicate: true` and still one file; cancelling sends nothing and a later approval is refused with 409; an expired draft cannot be sent.
+- Whether the student is late is deterministic time arithmetic, so the dialog appears even when the model is unavailable.
+- Confirmation dialog in the UI with 寄出／修改／取消; an edited body is what reaches the outbox.
+- 20 tests in `tests/test_actions.py` plus 9 HTTP-level tests; 172 in total.
+- Verified in the browser end to end: the dialog opens by itself at 08:35, 寄出 writes one file to the outbox, and the panel then reads 「已寄出・已寫入 outbox」.
+- The whole scenario now replays from the cassette with **zero fallback and zero API requests** — 48 recorded turns on `gemini-3.5-flash-lite`, including the model's own `draft_email` call at 08:35.
 
 ## Evidence (M3)
 - Command: `.venv/Scripts/python.exe -m pytest -q` → **143 passed**.
@@ -47,6 +57,11 @@
 - `data/campus_graph.json` is still a **draft** (approximate coordinates), surfaced as `draft: true`.
 - **The cassette is keyed on the exact question, simulated time included.** Use `下一個事件 ▶` / `POST /replay/next` in the demo so the times line up. `前進 5 分鐘` will miss and degrade to deterministic planning — correct, but not the presentation path. Re-record after changing prompts, tool declarations, tool output shapes, or the scenario.
 
+## Bugs found and fixed in M5
+- **The 寄出 button silently did nothing.** The dialog relied on `<form method="dialog">` and `returnValue`; the implicit submit never fired the request, so the click closed the dialog and sent nothing. Found by clicking it in a real browser and checking the outbox, not by reading the code. The three buttons now have explicit handlers, and Escape leaves the draft pending rather than deciding for the student.
+- **Windows cannot store the idempotency key as a filename.** `late-notice:cmt_01:20260923.json` raised `OSError: Invalid argument` at the moment of sending — the demo's final step. The mailbox now derives a safe filename (sanitised slug plus a hash of the key, so distinct keys stay distinct) and keeps the readable key inside the record.
+- **Tests were writing into `data/outbox/` and polluting each other.** Sending is idempotent per commitment per simulated day, so one test's message made the next test see a non-empty outbox. `OUTBOX_PATH` now redirects it, and an autouse fixture points every test at a temp directory.
+
 ## Bugs found and fixed in M3 (all found by driving the real browser)
 - **Refresh storm.** One `/replay/next` publishes a dozen SSE frames and each triggered a full refresh plus a map redraw and an animated `fitBounds`, queueing animations until the page stalled. Refreshes are now coalesced, and the map only re-fits when the route or focus actually changed. Verified from the server log: three clicks now produce exactly three `/state` and three `/graph`.
 - **重設 broke every cassette hit.** The recording starts with a plan made at the scenario's opening time; `/replay/reset` skips that run, so every later question differed and every recorded turn missed. The button now calls `/replay/start`.
@@ -73,5 +88,6 @@
 - **M0 / Stage 0 — baseline shell.** 44 tests. FastAPI single service, SimClock (paused by default, never rewinds), provider interfaces with fixture implementations and honest `unavailable` live stubs, facility override layer, SSE, frontend shell with provider-mode badges.
 
 ## Next gate
-- **M5 before M4**: the confirmation-gated email. `pending_confirmations` is still empty, and the authorization boundary is a must-pass item in `demo-and-acceptance.md`. `draft_email` becomes a tool that only writes a draft; `/confirm/{id}` is the only path that can send; re-running an approved action must not send twice. No quota cost — the tool and the endpoint are deterministic.
-- Then M4 (material-change thresholds, debounce, scheduled rechecks) and M7 (photo reports), which need the photo path and Gemini vision.
+- **M4**: material-change thresholds, debounce and cooldown, scheduled rechecks. Today every event re-plans; `demo-and-acceptance.md` asks that oscillating signals must not spam notifications or actions. Deterministic, so no quota cost.
+- Then **M6** (timetable image ingestion) and **M7** (photo reports), both of which need Gemini vision and therefore quota.
+- **M9 live mode stays optional.** The demo is deliberately replay-only.

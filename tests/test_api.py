@@ -71,10 +71,16 @@ def test_inject_appends_an_event_and_logs_it(client):
 
 
 def test_unbuilt_endpoints_answer_501_with_their_milestone(client):
-    for path in ("/schedule", "/report", "/confirm/abc"):
+    for path in ("/schedule", "/report"):
         response = client.post(path)
         assert response.status_code == 501
         assert "M" in response.json()["detail"]
+
+
+def test_confirming_an_unknown_action_is_refused(client):
+    response = client.post("/confirm/act_nonexistent", json={"approve": True})
+    assert response.status_code == 409
+    assert "沒有" in response.json()["detail"]
 
 
 def test_frontend_shell_is_served(client):
@@ -318,3 +324,79 @@ def test_health_warns_about_a_maps_key_in_the_gemini_key_list(client, settings):
     warnings = mixed.gemini_key_warnings()
     assert len(warnings) == 1
     assert "MAPS_API_KEY.txt" in warnings[0]
+
+
+# --------------------------------------------------------------------------- #
+# M5: the confirmation boundary over HTTP
+# --------------------------------------------------------------------------- #
+def walk_to_the_draft(client):
+    client.post("/replay/start", json={})
+    for _ in range(12):
+        if client.post("/replay/next").json().get("done"):
+            break
+    pending = client.get("/state").json()["pending_confirmations"]
+    assert pending, "走完情境後應該要有一封待確認的遲到通知"
+    return pending[0]
+
+
+def test_the_scenario_ends_with_one_unsent_draft(client):
+    action = walk_to_the_draft(client)
+    assert action["type"] == "send_email"
+    assert action["state"] == "awaiting_confirmation"
+    assert action["requires_authorization"] is True
+    assert client.get("/outbox").json()["count"] == 0
+
+
+def test_the_draft_names_the_class_and_how_late(client):
+    action = walk_to_the_draft(client)
+    assert "計算機組織" in action["preview"]["subject"]
+    assert "CSIE-4263" in action["preview"]["body"]
+    assert action["preview"]["minutes_late"] > 0
+
+
+def test_nothing_is_sent_until_confirm_is_called(client):
+    walk_to_the_draft(client)
+    # Every other endpoint has now run; the outbox must still be empty.
+    assert client.get("/outbox").json()["count"] == 0
+    log = client.get("/state").json()["agent_log"]
+    assert any("等待你確認" in e["summary"] for e in log)
+    assert not any(e["tool"] == "send_email" for e in log)
+
+
+def test_confirming_sends_once_and_only_once(client):
+    action = walk_to_the_draft(client)
+    first = client.post(f"/confirm/{action['id']}", json={"approve": True}).json()
+    assert first["result"]["sent"] is True
+    assert first["result"]["duplicate"] is False
+    assert first["action"]["state"] == "executed"
+    assert client.get("/outbox").json()["count"] == 1
+
+    second = client.post(f"/confirm/{action['id']}", json={"approve": True}).json()
+    assert second["result"]["duplicate"] is True
+    assert client.get("/outbox").json()["count"] == 1
+
+
+def test_cancelling_sends_nothing(client):
+    action = walk_to_the_draft(client)
+    body = client.post(f"/confirm/{action['id']}", json={"approve": False}).json()
+    assert body["action"]["state"] == "rejected"
+    assert body["result"]["sent"] is False
+    assert client.get("/outbox").json()["count"] == 0
+
+    retry = client.post(f"/confirm/{action['id']}", json={"approve": True})
+    assert retry.status_code == 409
+
+
+def test_an_edited_draft_is_what_reaches_the_outbox(client):
+    action = walk_to_the_draft(client)
+    client.post(f"/confirm/{action['id']}", json={"approve": True, "body": "我會晚到，抱歉。"})
+    messages = client.get("/outbox").json()["messages"]
+    assert len(messages) == 1
+    assert messages[0]["body"] == "我會晚到，抱歉。"
+
+
+def test_the_confirmation_dialog_is_in_the_page(client):
+    page = client.get("/").text
+    assert 'id="confirm-dialog"' in page
+    for label in ("寄出", "修改", "取消"):
+        assert label in page

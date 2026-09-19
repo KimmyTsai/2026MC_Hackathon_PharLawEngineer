@@ -325,9 +325,40 @@ def submit_report() -> None:
     raise HTTPException(501, "photo reporting lands in M7")
 
 
+@app.get("/outbox")
+def read_outbox(request: Request) -> dict[str, Any]:
+    """What was actually sent. Empty until something is confirmed."""
+    state = agent(request)
+    directory = state.settings.outbox_dir
+    files = sorted(directory.glob("*.json")) if directory.exists() else []
+    return {
+        "count": len(files),
+        "messages": [json.loads(path.read_text(encoding="utf-8")) for path in files],
+    }
+
+
+class ConfirmRequest(BaseModel):
+    approve: bool = True
+    body: str | None = None
+
+
 @app.post("/confirm/{action_id}")
-def confirm_action(action_id: str) -> None:
-    raise HTTPException(501, "confirmation flow lands in M5 / Stage 5")
+def confirm_action(action_id: str, body: ConfirmRequest, request: Request) -> dict[str, Any]:
+    """The only path that performs an outward-facing action.
+
+    No model tool reaches this; `draft_email` can only create the proposal.
+    """
+    from app.agent.actions import ConfirmationError, execute_action
+
+    state = agent(request)
+    try:
+        result = execute_action(
+            state, action_id, approve=body.approve, edited_body=body.body
+        )
+    except ConfirmationError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    action = state.pending_confirmations[action_id]
+    return {"action": action.model_dump(mode="json"), "result": result}
 
 
 # --------------------------------------------------------------------------- #

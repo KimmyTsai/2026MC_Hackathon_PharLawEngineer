@@ -56,11 +56,19 @@ class Settings(BaseSettings):
     # request. scripts/record_cassette.py raises this.
     quota_retries: int = 0
 
+    # The late-notice recipient. Configuration rather than scenario data, so a
+    # team can point it at their own test mailbox without re-recording the
+    # cassette. Synthetic by default — never a real person.
+    ta_email: str = "ta-csie@example.edu"
+    student_name: str = "學生"
+
     use_gemma: bool = False
     ollama_model: str | None = None
     ollama_host: str = "http://127.0.0.1:11434"
 
     data_dir: Path = Field(default=REPO_ROOT / "data")
+    # Overridable so tests never write into the repo's data directory.
+    outbox_path: Path | None = None
     web_dir: Path = Field(default=REPO_ROOT / "web")
 
     def model_post_init(self, _context: object) -> None:
@@ -145,7 +153,7 @@ class Settings(BaseSettings):
 
     @property
     def outbox_dir(self) -> Path:
-        return self.data_dir / "outbox"
+        return self.outbox_path or self.data_dir / "outbox"
 
     def reasoning_model(self) -> str:
         """Pro when configured, otherwise Flash. Never guess an unverified model ID."""

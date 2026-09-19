@@ -231,6 +231,86 @@ function renderPlan(snapshot) {
   }
 }
 
+const ACTION_STATE_LABEL = {
+  awaiting_confirmation: "待確認",
+  approved: "已核准",
+  executed: "已寄出",
+  rejected: "已取消",
+  expired: "已過期",
+};
+
+let shownDraft = null;
+
+function renderPending(snapshot) {
+  const host = $("pending");
+  const actions = snapshot.pending_confirmations ?? [];
+  host.replaceChildren();
+  for (const action of actions) {
+    const li = document.createElement("li");
+    li.innerHTML =
+      `<span class="pending-state state-${action.state}">` +
+      `${ACTION_STATE_LABEL[action.state] ?? action.state}</span> ` +
+      `${action.preview.subject ?? action.type}` +
+      `<div class="meta">收件人 ${action.preview.to ?? "—"}` +
+      `${action.state === "executed" ? "・已寫入 outbox" : ""}</div>`;
+    if (action.state === "awaiting_confirmation") {
+      li.style.cursor = "pointer";
+      li.addEventListener("click", () => openDraft(action));
+    }
+    host.appendChild(li);
+  }
+  if (!host.children.length) host.innerHTML = '<li class="meta">沒有待確認的動作</li>';
+
+  // Surface a new draft on its own: the whole point is that it interrupts.
+  const waiting = actions.find((a) => a.state === "awaiting_confirmation");
+  if (waiting && shownDraft !== waiting.id) openDraft(waiting);
+  if (!waiting) shownDraft = null;
+}
+
+function openDraft(action) {
+  shownDraft = action.id;
+  const dialog = $("confirm-dialog");
+  dialog.dataset.actionId = action.id;
+  $("confirm-why").textContent = action.preview.reason ?? "";
+  $("confirm-to").textContent = action.preview.to ?? "";
+  $("confirm-subject").textContent = action.preview.subject ?? "";
+  const text = $("confirm-text");
+  text.value = action.preview.body ?? "";
+  text.readOnly = true;
+  if (!dialog.open) dialog.showModal();
+}
+
+function wireDialog() {
+  const dialog = $("confirm-dialog");
+  const text = $("confirm-text");
+
+  // Explicit handlers rather than <form method="dialog"> + returnValue: the
+  // dialog form's implicit submit did not reliably fire the request, and a
+  // confirmation button that silently does nothing is the worst possible bug
+  // in this particular feature.
+  const decide = async (approve) => {
+    const actionId = dialog.dataset.actionId;
+    if (!actionId) return;
+    const edited = approve && !text.readOnly ? text.value : null;
+    dialog.dataset.actionId = "";
+    dialog.close();
+    await post(`/confirm/${encodeURIComponent(actionId)}`, { approve, body: edited });
+  };
+
+  $("confirm-send").addEventListener("click", () => decide(true));
+  $("confirm-cancel").addEventListener("click", () => decide(false));
+  $("confirm-edit").addEventListener("click", () => {
+    text.readOnly = false;
+    text.focus();
+  });
+
+  // Escape leaves the draft pending rather than deciding for the student.
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    dialog.close();
+  });
+}
+
 function appendLog(entry) {
   const host = $("agent-log");
   const li = document.createElement("li");
@@ -266,6 +346,7 @@ async function refresh() {
   renderCommitments(snapshot);
   renderSignals(snapshot);
   renderPlan(snapshot);
+  renderPending(snapshot);
   renderLog(snapshot);
 
   campusMap.drawGraph(graph);
@@ -358,4 +439,5 @@ function wireControls() {
 campusMap = new CampusMap("map");
 buildLegend($("legend"));
 wireControls();
+wireDialog();
 refresh().then(connectStream);

@@ -7,7 +7,9 @@ model tool call).
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -57,10 +59,19 @@ class FixtureMailbox:
             "sent": False,
         }
 
+    @staticmethod
+    def _filename(idempotency_key: str) -> str:
+        """Idempotency keys read well (`late-notice:cmt_01:20260923`) but `:` is
+        not legal in a Windows filename, so the file is named from a sanitised
+        form plus a hash of the original to keep distinct keys distinct."""
+        slug = re.sub(r"[^A-Za-z0-9._-]+", "-", idempotency_key).strip("-")[:60]
+        digest = hashlib.sha1(idempotency_key.encode("utf-8")).hexdigest()[:8]
+        return f"{slug}-{digest}.json"
+
     def execute(self, payload: dict[str, Any], idempotency_key: str) -> dict[str, Any]:
         """Only called after explicit user confirmation. Idempotent by key."""
         self.outbox_dir.mkdir(parents=True, exist_ok=True)
-        target = self.outbox_dir / f"{idempotency_key}.json"
+        target = self.outbox_dir / self._filename(idempotency_key)
         if target.exists():
             return {"sent": True, "duplicate": True, "path": str(target)}
         record = dict(payload)

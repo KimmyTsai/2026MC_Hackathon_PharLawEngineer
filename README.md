@@ -44,7 +44,9 @@ uv pip install --python .venv\Scripts\python.exe -r requirements.txt
 | `POST /replay/inject` | 回放中插入事件（評審現場回報） |
 | `POST /replay/reset` | 一鍵重設回放 |
 | `POST /replay/inject` 的 `at` | 省略即為「現在」，會立刻被感知；給未來時間則等時鐘走到 |
-| `POST /schedule` `POST /report` `POST /confirm/{id}` | 尚未實作，回 501 並註明由哪個里程碑交付 |
+| `POST /confirm/{id}` | **唯一能寄出的路徑**（`{"approve":true,"body":"可改寫內文"}`） |
+| `GET /outbox` | 實際寄出的信。未確認前一定是空的 |
+| `POST /schedule` `POST /report` | 尚未實作，回 501 並註明由哪個里程碑交付 |
 
 ## Agent（Gemini）
 
@@ -103,6 +105,19 @@ $env:GEMINI_KEY_INDEX = 1   # 用第二把
 **Demo 一定要從「重設並開始」按鈕進場**（`POST /replay/start`）：錄音是從情境起始時間的那一次規劃開始錄的，少跑那一次，之後每一步的提問都會不同而全部未命中。
 
 模型不可用時（沒金鑰、額度用完、429），畫面上的 Agent badge 會顯示「確定性規劃」並附原因，計畫照樣產生。
+
+## 對外動作的授權界線
+
+`send_email` **不在模型的工具清單裡**——這是結構上的限制，不是 prompt 指示，有測試斷言它不存在。模型只能呼叫 `draft_email`，那只會把草稿放進 `pending_confirmations`。
+
+唯一會真的寄出的程式路徑是 `POST /confirm/{id}`，由使用者在確認視窗按下「寄出」才會呼叫。保證：
+
+- 未確認 → `GET /outbox` 是空的
+- 重複確認 → 回 `duplicate: true`，不會寄第二封（以 idempotency key 判定）
+- 取消後 → 不能再確認，回 409
+- 草稿過期 → 不能寄出
+
+「是否遲到」是確定性的時間計算，不是模型判斷。模型可以寫更好的措辭，但改不了事實，也寄不出去。
 
 ## Test
 

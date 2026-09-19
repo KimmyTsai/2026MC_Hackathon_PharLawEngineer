@@ -359,6 +359,27 @@ def set_departure_reminder(ctx: ToolContext, at: str = "", message: str = "") ->
     return {"ok": True, "at": when.strftime("%H:%M"), "message": reminder["message"]}
 
 
+def draft_email(ctx: ToolContext, purpose: str = "", body: str = "") -> dict[str, Any]:
+    """Prepare a late notice. This CANNOT send: it only creates a draft that the
+    student must confirm. Sending lives in /confirm/{id}."""
+    from app.agent.actions import assess_late_risk, propose_email
+
+    if ctx.commitment is None:
+        return _error("今日沒有後續行程，不需要通知")
+    late = assess_late_risk(ctx.planning_inputs(), ctx.commitment, ctx.now, departed=False)
+    action, created = propose_email(ctx.state, ctx.commitment, late, body=body or None)
+    return {
+        "ok": True,
+        "action_id": action.id,
+        "state": action.state.value,
+        "sent": False,
+        "to": action.preview["to"],
+        "subject": action.preview["subject"],
+        "created": created,
+        "note": "草稿已進入待確認清單。你不能寄出，必須由使用者確認。",
+    }
+
+
 def commit_plan(ctx: ToolContext, option_id: str = "", why: str = "") -> dict[str, Any]:
     """Select an option. Code validates feasibility — the model cannot override it."""
     if not ctx.options:
@@ -503,6 +524,28 @@ TOOLS: dict[str, tuple[ToolDeclaration, Handler]] = {
             },
         ),
         set_departure_reminder,
+    ),
+    "draft_email": (
+        ToolDeclaration(
+            name="draft_email",
+            description=(
+                "準備一封遲到通知草稿給助教。這個工具不會寄出任何東西，"
+                "只會把草稿放進待確認清單，必須由使用者按下確認才會寄出。"
+                "只有在使用者確實趕不上時才呼叫。"
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "purpose": {"type": "string", "description": "為什麼需要這封信"},
+                    "body": {
+                        "type": "string",
+                        "description": "信件內文。省略則由系統用工具算出的事實產生。",
+                    },
+                },
+                "required": ["purpose"],
+            },
+        ),
+        draft_email,
     ),
     "commit_plan": (
         ToolDeclaration(

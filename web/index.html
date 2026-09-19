@@ -54,6 +54,8 @@
         <button id="btn-reset" type="button">重設並開始</button>
       </div>
       <ol id="events" class="events"></ol>
+      <h3>待確認動作</h3>
+      <ul id="pending" class="list"></ul>
       <h3>今日行程</h3>
       <ul id="commitments" class="list"></ul>
       <h3>目前訊號</h3>
@@ -68,6 +70,24 @@
       <ol id="agent-log" class="log"></ol>
     </section>
   </main>
+
+  <dialog id="confirm-dialog" class="confirm">
+    <div class="confirm-body">
+      <h2>需要你的確認才會寄出</h2>
+      <p class="meta" id="confirm-why"></p>
+      <dl class="confirm-fields">
+        <dt>收件人</dt><dd id="confirm-to"></dd>
+        <dt>主旨</dt><dd id="confirm-subject"></dd>
+      </dl>
+      <textarea id="confirm-text" rows="9" readonly></textarea>
+      <p class="meta" id="confirm-note">Agent 不能自己寄出；按下「寄出」之前不會有任何對外動作。</p>
+      <menu class="confirm-actions">
+        <button id="confirm-cancel" type="button">取消</button>
+        <button id="confirm-edit" type="button">修改</button>
+        <button id="confirm-send" type="button" class="primary">寄出</button>
+      </menu>
+    </div>
+  </dialog>
 
   <script src="/static/vendor/leaflet.js"></script>
   <script src="/static/map.js"></script>

@@ -271,8 +271,17 @@ class AgentState:
         }
 
     def run_agent(self, trigger: Trigger | None = None) -> AgentRun:
-        """The Gemini loop, with the deterministic planner as the fallback."""
-        return Orchestrator(self, self.llm).run(trigger)
+        """The Gemini loop, with the deterministic planner as the fallback.
+
+        The departure check runs afterwards either way: whether the student is
+        late is time arithmetic, not a model judgement, and the demo must reach
+        the confirmation dialog even when the model is unavailable.
+        """
+        run = Orchestrator(self, self.llm).run(trigger)
+        from app.agent.actions import check_departure
+
+        check_departure(self, run.plan)
+        return run
 
     def replan(self, trigger: Trigger | None = None) -> Plan | None:
         """Recompute the plan for the next commitment. Deterministic in M1."""

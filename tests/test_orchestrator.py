@@ -206,9 +206,14 @@ def test_an_unknown_tool_is_reported_not_raised(ready):
 
 
 def test_outbound_mail_is_not_a_tool_the_model_can_reach():
-    """The authorization boundary is structural, not a prompt instruction."""
+    """The authorization boundary is structural, not a prompt instruction.
+
+    The model may draft; only /confirm/{id} can send.
+    """
     assert "send_email" not in TOOLS
-    assert "draft_email" not in TOOLS  # arrives in M5, behind /confirm
+    assert "draft_email" in TOOLS
+    declaration = TOOLS["draft_email"][0]
+    assert "不會寄出" in declaration.description
 
 
 # --- tool-level validation --------------------------------------------------
