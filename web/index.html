@@ -30,6 +30,19 @@
       --grid-line: #23272d;
     }
   }
+  .steps { list-style: none; margin: 12px 0 0; padding: 0; }
+  .steps li {
+    display: grid; grid-template-columns: 1fr auto; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid var(--grid-line); font-size: 0.9375rem;
+  }
+  .steps li:last-child { border-bottom: 0; }
+  .steps .meta { color: var(--muted); font-size: 0.8125rem; }
+  .steps .dur { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .access-head { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+  .access-head b { font-size: 1.125rem; }
+  .rain { margin-left: auto; font-size: 0.8125rem; color: var(--muted); }
+  .rain input { margin-right: 4px; }
+
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
@@ -167,9 +180,11 @@
   </form>
 
   <div class="modes" id="modes"></div>
+  <div class="modes" id="profiles"></div>
 
   <section class="card" id="hero"><p class="sub">查詢中…</p></section>
   <section class="card" id="parking" hidden></section>
+  <section class="card" id="access" hidden></section>
 
   <section class="card">
     <p class="label">本週課表</p>
@@ -345,7 +360,49 @@ function renderParking(data) {
   box.innerHTML = html;
 }
 
-let mode = "walking", vehicle = "機車", origin = "";
+function renderProfiles(profiles, current) {
+  document.getElementById("profiles").innerHTML =
+    Object.entries(profiles).map(([key, label]) =>
+      `<button data-profile="${esc(key)}" aria-pressed="${key === current}">${esc(label)}</button>`
+    ).join("")
+    + `<label class="rain"><input type="checkbox" id="rainToggle" ${raining ? "checked" : ""}>下雨中</label>`;
+}
+
+function renderAccess(data) {
+  const box = document.getElementById("access");
+  const route = data.accessible_route;
+  if (!route) { box.hidden = true; return; }
+  box.hidden = false;
+
+  if (route.status === "no_map") {
+    box.innerHTML = `<p class="label">校內無障礙路線</p>
+      <p class="err">「${esc(route.query)}」目前沒有無障礙圖資，不猜路線。</p>
+      <p class="note">已建圖的大樓：${esc(route.covered_buildings.join("、"))}</p>`;
+    return;
+  }
+  if (route.status === "no_route") {
+    box.innerHTML = `<p class="label">校內無障礙路線</p>
+      <p class="err">${esc(route.reason)}</p>
+      ${route.blocked_facilities.length
+        ? `<p class="note">停用中：${esc(route.blocked_facilities.join("、"))}</p>` : ""}
+      <p class="note">${esc(route.note)}</p>`;
+    return;
+  }
+
+  box.innerHTML = `<p class="label">校內無障礙路線（${esc(route.profile_label)}）</p>
+    <div class="access-head">
+      <b>${esc(route.origin)} → ${esc(route.building)} ${esc(route.floor)}</b>
+      <span class="meta">約 ${route.minutes} 分・${route.distance_m} 公尺・有頂蓋 ${Math.round(route.covered_ratio * 100)}%</span>
+      ${route.avoids_stairs ? '<span class="badge">避開階梯</span>' : ""}
+    </div>
+    <ul class="steps">${route.steps.map(st => `<li>
+      <span>${esc(st.from)} → ${esc(st.to)}
+        ${st.marks.length ? `<div class="meta">${esc(st.marks.join("・"))}</div>` : ""}</span>
+      <span class="dur">${st.metres} m・${st.minutes} 分</span></li>`).join("")}</ul>
+    ${route.notes.map(n => `<p class="note">${esc(n)}</p>`).join("")}`;
+}
+
+let mode = "walking", vehicle = "機車", origin = "", profile = "default", raining = false;
 
 function load() {
   document.getElementById("hero").innerHTML = '<p class="spinner">查詢中…</p>';
@@ -354,7 +411,7 @@ function load() {
     document.getElementById("parking").innerHTML =
       '<p class="spinner">正在比對全校停車場車位…</p>';
   }
-  const params = new URLSearchParams({ mode, vehicle });
+  const params = new URLSearchParams({ mode, vehicle, profile, raining });
   if (origin) params.set("origin", origin);
   fetch(`/api/state?${params}`)
     .then(r => r.json()).then(data => {
@@ -370,8 +427,10 @@ function load() {
       document.getElementById("originInput").placeholder =
         data.default_origin || "例如：成大圖書館";
       renderModes(data.modes, data.travel_mode, data.vehicle_type);
+      renderProfiles(data.profiles, data.profile);
       renderHero(data);
       renderParking(data);
+      renderAccess(data);
       renderGrid(data);
     }).catch(e => {
       document.getElementById("hero").innerHTML =
@@ -388,6 +447,19 @@ document.getElementById("originForm").addEventListener("submit", e => {
 document.getElementById("resetOrigin").addEventListener("click", () => {
   origin = "";
   document.getElementById("originInput").value = "";
+  load();
+});
+
+document.getElementById("profiles").addEventListener("click", e => {
+  const btn = e.target.closest("button");
+  if (!btn || !btn.dataset.profile) return;
+  profile = btn.dataset.profile;
+  load();
+});
+
+document.getElementById("profiles").addEventListener("change", e => {
+  if (e.target.id !== "rainToggle") return;
+  raining = e.target.checked;
   load();
 });
 

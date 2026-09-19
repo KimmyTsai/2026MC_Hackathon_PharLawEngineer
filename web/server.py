@@ -21,6 +21,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from api import load_settings
 from commute_agent.tools.class_schedule import PROJECT_ROOT, find_classes, load_courses
 from commute_agent.tools.ncku_room import lookup_room
+from commute_agent.skills.accessible_route import PROFILE_LABELS, plan_accessible_route
 from commute_agent.skills.parking_plan import plan_parking
 from commute_agent.skills.trip_plan import estimate_trip
 from commute_agent.tools.route_link import TRAVEL_MODE_LABELS, build_route_link
@@ -78,11 +79,33 @@ def _parking_for(entry: dict | None, vehicle_type: str) -> dict | None:
     return plan
 
 
+def _accessible_route(entry: dict | None, profile: str, raining: bool) -> dict | None:
+    """校內最後一段：哪個入口進得去、哪台電梯能用。
+
+    Google Maps 只能帶到大樓門口。行動狀態選「一般」時不查——那段路對一般
+    人沒有決策價值，查了只是多一個雜訊區塊。
+    """
+    if entry is None or profile == "default":
+        return None
+    building = entry.get("building_name") or entry.get("location") or ""
+    if not building:
+        return None
+    return plan_accessible_route(
+        destination_building=building,
+        floor=entry.get("floor", ""),
+        profile=profile,
+        raining=raining,
+    )
+
+
 @app.get("/api/state")
 def state(mode: str = "walking", vehicle: str = "機車",
-          origin: str | None = None) -> JSONResponse:
+          origin: str | None = None, profile: str = "default",
+          raining: bool = False) -> JSONResponse:
     if mode not in TRAVEL_MODE_LABELS:
         return JSONResponse({"error": f"不支援的交通模式：{mode}"}, status_code=400)
+    if profile not in PROFILE_LABELS:
+        return JSONResponse({"error": f"不支援的行動狀態：{profile}"}, status_code=400)
 
     settings = load_settings()
     now = datetime.now(ZoneInfo(settings.timezone))
@@ -114,6 +137,11 @@ def state(mode: str = "walking", vehicle: str = "機車",
         "travel_mode_label": TRAVEL_MODE_LABELS[mode],
         "vehicle_type": vehicle,
         "modes": TRAVEL_MODE_LABELS,
+        "profile": profile,
+        "profile_label": PROFILE_LABELS[profile],
+        "profiles": PROFILE_LABELS,
+        "raining": raining,
+        "accessible_route": _accessible_route(next_class, profile, raining),
         "current_class": _with_route(current, start, mode),
         "next_class": next_class,
         "trip": trip,
