@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     port: int = 3000
 
     gemini_api_key: str | None = None
+    # Populated from the key file; one key per line. Never logged.
+    gemini_api_keys: list[str] = Field(default_factory=list, exclude=True)
+    gemini_key_index: int = 0
     gemini_flash_model: str = "gemini-3-flash-preview"
     gemini_pro_model: str | None = None
 
@@ -59,18 +62,33 @@ class Settings(BaseSettings):
         """Fall back to a git-ignored key file when no env var is set.
 
         Mirrors what scripts/test-ai-studio.mjs does, so a teammate who dropped
-        the key in a file instead of .env still gets a working app. Never log or
-        echo the value.
+        the key in a file instead of .env still gets a working app.
+
+        The file may hold several keys, one per line: the free tier is limited
+        per project, so a key from a second project is a second daily quota.
+        `GEMINI_KEY_INDEX` picks one. Never log or echo the values.
         """
-        if self.gemini_api_key:
-            return
-        for name in ("API", "API.txt", "GEMINI_API_KEY.txt"):
-            candidate = REPO_ROOT / name
-            if candidate.exists():
-                value = candidate.read_text(encoding="utf-8-sig").strip()
-                if value:
-                    object.__setattr__(self, "gemini_api_key", value)
-                    return
+        keys = list(self.gemini_api_keys) if self.gemini_api_keys else []
+        if not keys:
+            for name in ("API", "API.txt", "GEMINI_API_KEY.txt"):
+                candidate = REPO_ROOT / name
+                if not candidate.exists():
+                    continue
+                keys = [
+                    line.strip()
+                    for line in candidate.read_text(encoding="utf-8-sig").splitlines()
+                    if line.strip() and not line.lstrip().startswith("#")
+                ]
+                if keys:
+                    break
+
+        if self.gemini_api_key and self.gemini_api_key not in keys:
+            keys.insert(0, self.gemini_api_key)
+        object.__setattr__(self, "gemini_api_keys", keys)
+
+        if keys:
+            index = min(max(self.gemini_key_index, 0), len(keys) - 1)
+            object.__setattr__(self, "gemini_api_key", keys[index])
 
     @property
     def cassette_path(self) -> Path:

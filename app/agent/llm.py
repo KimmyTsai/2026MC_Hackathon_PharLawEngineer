@@ -308,7 +308,8 @@ def build_llm(settings: Settings) -> LLM:
     Wrapped in a cassette unless AGENT_MODE=live, because the free tier allows
     only 20 requests per day per model.
     """
-    from app.agent.cassette import CachedLLM
+    from app.agent.cassette import CachedLLM, fingerprint
+    from app.agent.prompts import SYSTEM_PROMPT
 
     mode = (settings.agent_mode or "cache").lower()
     if mode == "off":
@@ -327,4 +328,12 @@ def build_llm(settings: Settings) -> LLM:
     )
     if mode == "live":
         return inner
-    return CachedLLM(inner, settings.cassette_path, mode=mode)
+
+    from app.agent.tools import declarations
+
+    return CachedLLM(
+        inner,
+        settings.cassette_path,
+        mode=mode,
+        expected_fingerprint=fingerprint(settings.scenario_path, SYSTEM_PROMPT, declarations()),
+    )

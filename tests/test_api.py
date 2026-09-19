@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 
 def test_health_reports_mode_and_graph_size(client):
     body = client.get("/health").json()
@@ -238,3 +240,67 @@ def test_the_agent_log_records_which_path_decided(client):
     log = client.get("/state").json()["agent_log"]
     assert any(entry["model_id"] is None for entry in log)  # deterministic path
     assert all(entry["phase"] in {"perceive", "plan", "act", "reflect"} for entry in log)
+
+
+# --------------------------------------------------------------------------- #
+# M3: what the map and timeline need from the API
+# --------------------------------------------------------------------------- #
+def test_state_carries_the_scenario_timeline(client):
+    client.post("/replay/start", json={})
+    events = client.get("/state").json()["scenario_events"]
+    assert len(events) >= 8
+    assert events == sorted(events, key=lambda e: e["at"])
+    assert all(e["expect"] for e in events)
+    assert events[0]["type"] == "day_start"
+
+    client.post("/replay/next")
+    after = client.get("/state").json()["scenario_events"]
+    assert after[0]["processed"] is True
+    assert after[-1]["processed"] is False
+
+
+def test_every_graph_node_can_be_drawn(client):
+    graph = client.get("/graph").json()
+    for node in graph["nodes"]:
+        assert -90 <= node["lat"] <= 90 and -180 <= node["lng"] <= 180
+        assert node["name"] and node["type"]
+    ids = {n["id"] for n in graph["nodes"]}
+    for edge in graph["edges"]:
+        assert edge["from"] in ids and edge["to"] in ids
+
+
+def test_route_legs_reference_drawable_nodes(client):
+    client.post("/replay/start", json={})
+    client.post("/replay/next")
+    state = client.get("/state").json()
+    ids = {n["id"] for n in client.get("/graph").json()["nodes"]}
+    plan = state["plans"][state["next_commitment"]["id"]]
+    for leg in plan["selected"]["legs"]:
+        assert len(leg["nodes"]) >= 2
+        assert all(node in ids for node in leg["nodes"])
+        assert all(f in ids for f in leg["uses_facilities"])
+
+
+def test_the_frontend_assets_are_served_including_vendored_leaflet(client):
+    for path in ("/", "/static/app.js", "/static/map.js", "/static/style.css",
+                 "/static/vendor/leaflet.js", "/static/vendor/leaflet.css"):
+        assert client.get(path).status_code == 200, path
+    page = client.get("/").text
+    assert "/static/vendor/leaflet.js" in page
+    # Nothing the page needs to render may come from the network: venue wifi.
+    assert not re.search(r'(?:src|href)="https?://', page)
+
+
+def test_the_report_button_path_marks_a_point_for_the_map(client):
+    """現場回報 injects an event; a low-confidence report must show as
+    unconfirmed rather than silently rerouting."""
+    client.post("/replay/start", json={})
+    client.post("/replay/next")
+    body = client.post(
+        "/replay/inject",
+        json={"type": "report_submitted",
+              "payload": {"node_hint": "RAMP_07", "confidence_hint": "low"}},
+    ).json()
+    assert body["perceived"] is True
+    graph = client.get("/graph").json()
+    assert "RAMP_07" not in graph["blocked_ids"]

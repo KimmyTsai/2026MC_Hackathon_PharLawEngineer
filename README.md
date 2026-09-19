@@ -64,8 +64,19 @@ Agent 迴圈用 Gemini function calling：模型判斷要不要改計畫、該�
 
 ```powershell
 # 錄音（每個模型有獨立的每日額度，可以換模型來錄）
-.venv\Scripts\python.exe scriptsecord_cassette.py --model gemini-3.1-flash-lite
+.venv\Scripts\python.exe scripts
+ecord_cassette.py --model gemini-3.1-flash-lite
 ```
+
+### 多把金鑰
+
+金鑰檔（`API` / `API.txt` / `GEMINI_API_KEY.txt`）可以一行放一把。免費額度是**按專案**計算的，所以第二個專案的金鑰等於多一份每日額度：
+
+```powershell
+$env:GEMINI_KEY_INDEX = 1   # 用第二把
+```
+
+若金鑰回 `403 API_KEY_SERVICE_BLOCKED`，表示那把金鑰設了 API 限制而沒包含 Generative Language API，到 Google Cloud Console →「API 和服務」→「憑證」→ 該金鑰 →「API 限制」加入它（並確認該專案已啟用這個 API）。
 
 `AGENT_MODE` 控制行為：
 
@@ -76,7 +87,9 @@ Agent 迴圈用 Gemini function calling：模型判斷要不要改計畫、該�
 `live` | 每次都呼叫，不讀不寫錄音檔 |
 `off` | 完全不呼叫模型 |
 
-改了 prompt、工具宣告、工具輸出格式或情境，就要重錄——錄音檔的鍵是這些東西的 hash，過期的錄音只會「未命中」然後退化，不會給錯的答案。
+改了 prompt、工具宣告、工具輸出格式或情境，就要重錄——錄音檔的鍵是這些東西的 hash。錄音檔存有**指紋**，不符時 badge 會直接顯示「錄音檔已過期，需重錄」，測試 `test_the_shipped_cassette_matches_the_current_questions` 也會擋下來。過期的錄音只會「未命中」然後退化成確定性規劃，不會給錯的答案。
+
+**Demo 一定要從「重設並開始」按鈕進場**（`POST /replay/start`）：錄音是從情境起始時間的那一次規劃開始錄的，少跑那一次，之後每一步的提問都會不同而全部未命中。
 
 模型不可用時（沒金鑰、額度用完、429），畫面上的 Agent badge 會顯示「確定性規劃」並附原因，計畫照樣產生。
 

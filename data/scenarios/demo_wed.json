@@ -94,7 +94,7 @@
       "t": "07:50",
       "type": "day_start",
       "payload": {},
-      "expect": "initial plan for the 09:00 presentation, with departure time and next check"
+      "expect": "09:30 報告的初次計畫：出發時間、ETA、下次檢查時間"
     },
     {
       "t": "08:05",
@@ -102,7 +102,7 @@
       "payload": {
         "mail_id": "mail_003"
       },
-      "expect": "west elevator marked closed from the notice; on-campus leg re-routed to the east elevator"
+      "expect": "公告讓西側電梯停用；館內路段改走東側電梯"
     },
     {
       "t": "08:15",
@@ -112,7 +112,7 @@
         "mm_per_hr": 15,
         "description": "短時強降雨"
       },
-      "expect": "covered segments preferred; bike option penalised"
+      "expect": "優先有頂蓋路段；YouBike 被加重懲罰"
     },
     {
       "t": "08:15",
@@ -122,7 +122,7 @@
         "bikes": 0,
         "docks": 19
       },
-      "expect": "bike option becomes infeasible, not merely slower"
+      "expect": "YouBike 變成不可行，而不只是比較慢"
     },
     {
       "t": "08:16",
@@ -132,7 +132,7 @@
         "level": "advisory",
         "reason": "積水 10cm"
       },
-      "expect": "exposed bike/walk legs disqualified on safety grounds"
+      "expect": "暴露在積水路段的步行與騎乘方案因安全性被排除"
     },
     {
       "t": "08:22",
@@ -144,7 +144,7 @@
         "ride_minutes": 7,
         "low_floor": true
       },
-      "expect": "low-floor bus plan selected; departure advanced"
+      "expect": "選定低地板公車；出發時間提前"
     },
     {
       "t": "08:25",

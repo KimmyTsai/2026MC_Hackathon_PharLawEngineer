@@ -4,54 +4,73 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CampusPulse</title>
+  <!-- Leaflet is vendored, not loaded from a CDN: venue wifi is not worth trusting. -->
+  <link rel="stylesheet" href="/static/vendor/leaflet.css" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <header class="topbar">
     <h1>CampusPulse</h1>
     <div class="badges" id="badges" aria-live="polite">
-      <span class="badge badge--loading" id="mode-badge">連線中…</span>
+      <span class="badge" id="mode-badge">連線中…</span>
     </div>
   </header>
 
   <main class="layout">
     <section class="panel panel--map" aria-labelledby="map-title">
-      <h2 id="map-title">校園無障礙地圖</h2>
-      <div class="placeholder" id="map">
-        <p>地圖在 M3 接上 Leaflet。目前顯示圖資摘要：</p>
-        <dl id="graph-summary"></dl>
+      <div class="panel-head">
+        <h2 id="map-title">校園無障礙路線</h2>
+        <span class="map-controls">
+          <button id="btn-focus-campus" type="button" class="chip chip--on">校園段</button>
+          <button id="btn-focus-journey" type="button" class="chip">全程</button>
+        </span>
+        <span class="meta" id="map-note"></span>
       </div>
+      <div id="map" role="img" aria-label="校園無障礙路線地圖"></div>
+      <ul class="legend" id="legend"></ul>
+    </section>
+
+    <section class="panel panel--plan" aria-labelledby="plan-title">
+      <h2 id="plan-title">目前計畫</h2>
+      <div id="plan"><p class="meta">尚未產生計畫</p></div>
+      <details class="why">
+        <summary>為什麼是這個方案</summary>
+        <h3>被排除的方案</h3>
+        <ul id="rejected" class="list"></ul>
+        <h3>判斷依據</h3>
+        <ul id="assumptions" class="list"></ul>
+      </details>
     </section>
 
     <section class="panel panel--timeline" aria-labelledby="timeline-title">
-      <h2 id="timeline-title">時間軸</h2>
-      <p class="clock" id="clock">--:--</p>
-      <div class="controls">
-        <button id="btn-next" type="button">下一個事件 ▶</button>
-        <button id="btn-advance" type="button">前進 5 分鐘</button>
-        <button id="btn-reset" type="button">重設回放</button>
+      <div class="panel-head">
+        <h2 id="timeline-title">時間軸</h2>
+        <p class="clock" id="clock">--:--</p>
       </div>
+      <div class="controls">
+        <button id="btn-next" type="button" class="primary">下一個事件 ▶</button>
+        <button id="btn-advance" type="button">＋5 分</button>
+        <button id="btn-report" type="button">現場回報</button>
+        <button id="btn-reset" type="button">重設並開始</button>
+      </div>
+      <ol id="events" class="events"></ol>
       <h3>今日行程</h3>
       <ul id="commitments" class="list"></ul>
       <h3>目前訊號</h3>
       <ul id="signals" class="list"></ul>
     </section>
 
-    <section class="panel panel--plan" aria-labelledby="plan-title">
-      <h2 id="plan-title">目前計畫</h2>
-      <div id="plan"><p class="meta">尚未產生計畫</p></div>
-      <h3>被排除的方案</h3>
-      <ul id="rejected" class="list"></ul>
-      <h3>判斷依據</h3>
-      <ul id="assumptions" class="list"></ul>
-    </section>
-
     <section class="panel panel--log" aria-labelledby="log-title">
-      <h2 id="log-title">Agent 紀錄</h2>
+      <div class="panel-head">
+        <h2 id="log-title">Agent 紀錄</h2>
+        <span class="meta">感知 → 規劃 → 行動 → 檢視</span>
+      </div>
       <ol id="agent-log" class="log"></ol>
     </section>
   </main>
 
+  <script src="/static/vendor/leaflet.js"></script>
+  <script src="/static/map.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

@@ -1,11 +1,18 @@
 # CampusPulse status
 
 ## Current stage
-- Stage: M2 — Gemini function-calling agent loop
+- Stage: M3 — map, event timeline, decision panel
 - State: complete
-- Goal: the model decides whether to re-plan and which tools to call; every number still comes from deterministic code; the whole loop is visible in the agent log.
+- Goal: replaying `demo_wed.json` shows the route changing on a map, with the reason visible beside it.
 
-## Evidence
+## Evidence (M3)
+- Command: `.venv/Scripts/python.exe -m pytest -q` → **143 passed**.
+- Verified in a real browser, not by inspection: the map renders the campus graph over OSM tiles, the route draws through 資訊系館東側電梯 after the notice, the timeline marks processed events, and leg descriptions read 「校外租屋處（合成地點）→ 住處附近公車站」.
+- Leaflet is **vendored** (`web/vendor/`), and a test asserts the page loads nothing over the network: venue wifi must not be able to break the demo. Tiles are the only network dependency and the vector layer stays readable without them.
+- The map defaults to the **campus leg**, with a 全程 toggle. Fitting the whole 2.2 km commute shrinks the accessibility story — which elevator, which ramp — to a few pixels.
+- Demo entry point is the **重設並開始** button (`POST /replay/start`), then 下一個事件 ▶.
+
+## Evidence (M2)
 - Command: `.venv/Scripts/python.exe -m pytest -q` → **139 passed** (clock, scenario, graph, facility overrides, router, planner, orchestrator, cassette, API, SSE). No test touches the network: `tests/conftest.py::never_call_the_model` patches `build_llm`, and the agent tests script the model.
 - Live run against `gemini-3.1-flash-lite`, three consecutive events, no fallback:
 
@@ -40,13 +47,19 @@
 - `data/campus_graph.json` is still a **draft** (approximate coordinates), surfaced as `draft: true`.
 - **The cassette is keyed on the exact question, simulated time included.** Use `下一個事件 ▶` / `POST /replay/next` in the demo so the times line up. `前進 5 分鐘` will miss and degrade to deterministic planning — correct, but not the presentation path. Re-record after changing prompts, tool declarations, tool output shapes, or the scenario.
 
+## Bugs found and fixed in M3 (all found by driving the real browser)
+- **Refresh storm.** One `/replay/next` publishes a dozen SSE frames and each triggered a full refresh plus a map redraw and an animated `fitBounds`, queueing animations until the page stalled. Refreshes are now coalesced, and the map only re-fits when the route or focus actually changed. Verified from the server log: three clicks now produce exactly three `/state` and three `/graph`.
+- **重設 broke every cassette hit.** The recording starts with a plan made at the scenario's opening time; `/replay/reset` skips that run, so every later question differed and every recorded turn missed. The button now calls `/replay/start`.
+- **A stale cassette was only detectable as a run of silent misses.** Editing the scenario's `expect` text changed `trigger.materiality`, which reaches the model, which changed every key. The cassette now stores a **fingerprint** of prompt + tool declarations + scenario; the badge says 「錄音檔已過期，需重錄」 and `test_the_shipped_cassette_matches_the_current_questions` fails the build.
+
 ## Bugs found and fixed
 - **M2: replayed turns broke live continuation.** A cached tool turn had no `thought_signature`, so the next live call in the same run got 400. The cassette now stores the signed turn, and cache mode treats an unsigned tool turn as a miss so it is re-recorded complete.
 - **M1: injected events at the current instant were dropped forever.** The scheduled window is `(processed, until]`, so an event stamped "now" — the on-stage photo-report path — was never perceived.
 - **M1: a stale ETA flag could outrank 37 extra minutes of walking.** Risk flags were a lexicographic veto; they are now a 180s-per-flag time penalty, with hard safety rules handled as disqualifications instead.
 
 ## Blockers
-- **The demo cassette only covers the first three moments** (07:45 start, 07:50 day_start, 08:05 notice, 08:15 weather), because today's free quota is spent across four models. Re-record the rest with `scripts/record_cassette.py --model <fresh model>` when quota resets. Later events still work — they degrade to deterministic planning and say so.
+- **The demo cassette covers 07:45 start, 07:50 day_start and 08:05 notice.** 08:15 onwards degrades to deterministic planning, labelled in the log. Today's 20-per-day quota is spent on five models (`gemini-3-flash-preview`, `3.1-flash-lite`, `3.5-flash`, `3.6-flash`, `3.7-flash`). Re-record with `scripts/record_cassette.py --model <fresh model>` when quota resets.
+- **The second API key does not work yet.** It belongs to GCP project `631356509762` and returns `403 PERMISSION_DENIED / API_KEY_SERVICE_BLOCKED`: the key has API restrictions that exclude the Generative Language API. Fix in Cloud Console → APIs & Services → Credentials → that key → API restrictions, and confirm the API is enabled on the project. The code already supports several keys in one file, selected with `GEMINI_KEY_INDEX`; because the free quota is **per project**, a working second key doubles the daily budget.
 
 ## Open questions for the team
 - Team size, contest hours, and who owns which branch (CLAUDE.md 13).
@@ -60,5 +73,5 @@
 - **M0 / Stage 0 — baseline shell.** 44 tests. FastAPI single service, SimClock (paused by default, never rewinds), provider interfaces with fixture implementations and honest `unavailable` live stubs, facility override layer, SSE, frontend shell with provider-mode badges.
 
 ## Next gate
-- M3: Leaflet map showing the route, stopped facilities in red and reported points in orange, with the route visibly changing between plans; plus the decision timeline the rubric in `demo-and-acceptance.md` asks for. No new model calls, so no quota cost.
-- Then M5 (confirmation-gated email) before M4, because the authorization boundary is the rubric's must-pass item and `pending_confirmations` is still empty.
+- **M5 before M4**: the confirmation-gated email. `pending_confirmations` is still empty, and the authorization boundary is a must-pass item in `demo-and-acceptance.md`. `draft_email` becomes a tool that only writes a draft; `/confirm/{id}` is the only path that can send; re-running an approved action must not send twice. No quota cost — the tool and the endpoint are deterministic.
+- Then M4 (material-change thresholds, debounce, scheduled rechecks) and M7 (photo reports), which need the photo path and Gemini vision.

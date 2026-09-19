@@ -10,7 +10,7 @@ import json
 
 import pytest
 
-from app.agent.cassette import CachedLLM, turn_key
+from app.agent.cassette import CachedLLM, fingerprint, turn_key
 from app.agent.llm import LLMTurn, ToolCall, ToolDeclaration
 
 TOOLS = [ToolDeclaration(name="compare_travel_options", description="比較方案", parameters={})]
@@ -232,3 +232,62 @@ def test_replay_names_the_recording_model_not_the_configured_one(cassette_path):
     cache = CachedLLM(inner, cassette_path, mode="cache")
     assert cache.model_id == "configured-model"  # it may still call live
     assert cache.replaying is False
+
+
+# --- staleness --------------------------------------------------------------
+def test_a_cassette_recorded_against_other_questions_is_stale(cassette_path):
+    CachedLLM(
+        CountingLLM(LLMTurn(text="舊的", model_id="counting-flash")),
+        cassette_path,
+        mode="cache",
+        expected_fingerprint="aaaa1111",
+    ).turn(SYSTEM, history(), TOOLS)
+
+    same = CachedLLM(CountingLLM(), cassette_path, mode="replay",
+                     expected_fingerprint="aaaa1111")
+    assert same.stale is False
+
+    changed = CachedLLM(CountingLLM(), cassette_path, mode="replay",
+                        expected_fingerprint="bbbb2222")
+    assert changed.stale is True
+    assert "已過期" in (changed.reason or "")
+
+
+def test_an_empty_cassette_is_not_called_stale(cassette_path):
+    fresh = CachedLLM(CountingLLM(), cassette_path, mode="replay",
+                      expected_fingerprint="aaaa1111")
+    assert fresh.stale is False
+    assert "沒有錄音檔" in (fresh.reason or "")
+
+
+def test_the_fingerprint_covers_prompt_tools_and_scenario(tmp_path, settings):
+    scenario = tmp_path / "s.json"
+    scenario.write_text('{"events": []}', encoding="utf-8")
+    base = fingerprint(scenario, SYSTEM, TOOLS)
+
+    assert fingerprint(scenario, SYSTEM, TOOLS) == base
+    assert fingerprint(scenario, "別的系統提示", TOOLS) != base
+
+    other_tools = [ToolDeclaration(name="compare_travel_options",
+                                   description="改過的說明", parameters={})]
+    assert fingerprint(scenario, SYSTEM, other_tools) != base
+
+    # The scenario's `expect` text reaches the model as trigger materiality,
+    # so editing the scenario must invalidate the recording.
+    scenario.write_text('{"events": [{"t": "07:50", "expect": "新的說明"}]}', encoding="utf-8")
+    assert fingerprint(scenario, SYSTEM, TOOLS) != base
+
+
+def test_the_shipped_cassette_matches_the_current_questions(settings):
+    """Guards the demo: a stale cassette silently degrades every step."""
+    from app.agent.prompts import SYSTEM_PROMPT
+    from app.agent.tools import declarations
+
+    path = settings.cassette_path
+    assert path.exists(), "demo 錄音檔不在"
+    stored = json.loads(path.read_text(encoding="utf-8")).get("fingerprint")
+    expected = fingerprint(settings.scenario_path, SYSTEM_PROMPT, declarations())
+    assert stored == expected, (
+        "錄音檔與目前的 prompt／工具／情境不符，請執行 "
+        "scripts/record_cassette.py 重錄"
+    )

@@ -267,6 +267,7 @@ class AgentState:
             "reason": getattr(self.llm, "reason", None),
             "mode": getattr(self.llm, "mode", "live"),
             "replaying": bool(getattr(self.llm, "replaying", False)),
+            "cassette_stale": bool(getattr(self.llm, "stale", False)),
         }
 
     def run_agent(self, trigger: Trigger | None = None) -> AgentRun:
@@ -340,6 +341,16 @@ class AgentState:
             },
             "provider_modes": self.providers.modes(now),
             "agent": self.agent_info(),
+            "scenario_events": [
+                {
+                    "at": event.at.isoformat(),
+                    "type": event.type,
+                    "expect": event.expect,
+                    "payload": event.payload,
+                    "processed": event.at <= self._processed_until,
+                }
+                for event in self.scenario.events
+            ],
             "agent_log": [e.model_dump(mode="json") for e in self.agent_log[-50:]],
             "latest_decision": (
                 self.decisions[-1].model_dump(mode="json") if self.decisions else None

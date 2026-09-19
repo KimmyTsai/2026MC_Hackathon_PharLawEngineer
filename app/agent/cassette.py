@@ -22,6 +22,29 @@ from typing import Any
 from app.agent.llm import LLM, LLMTurn, ToolCall, ToolDeclaration
 
 
+def fingerprint(scenario_path: Path, system: str, tools: list[ToolDeclaration]) -> str:
+    """What the recording depends on.
+
+    A cassette only replays while the questions stay identical, and the
+    questions embed the system prompt, the tool declarations and the scenario
+    (event `expect` text reaches the model as the trigger's materiality). Storing
+    this lets a stale cassette announce itself instead of being discovered as a
+    run of silent misses.
+    """
+    blob = json.dumps(
+        {
+            "system": system,
+            "tools": sorted(
+                (t.name, t.description, json.dumps(t.parameters, sort_keys=True)) for t in tools
+            ),
+            "scenario": scenario_path.read_text(encoding="utf-8") if scenario_path.exists() else "",
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+
+
 def turn_key(system: str, history: list[dict[str, Any]], tools: list[ToolDeclaration]) -> str:
     """Stable hash of the question. `raw` is excluded: it carries provider-side
     signatures that differ between runs but say nothing about the question."""
@@ -54,10 +77,18 @@ class CachedLLM:
       replay — cassette only; a miss returns an error so the caller falls back
     """
 
-    def __init__(self, inner: LLM, path: Path, mode: str = "cache") -> None:
+    def __init__(
+        self,
+        inner: LLM,
+        path: Path,
+        mode: str = "cache",
+        expected_fingerprint: str | None = None,
+    ) -> None:
         self.inner = inner
         self.path = path
         self.mode = mode
+        self.expected_fingerprint = expected_fingerprint
+        self.stored_fingerprint: str | None = None
         self.hits = 0
         self.misses = 0
         self._entries: dict[str, dict[str, Any]] = {}
@@ -87,9 +118,18 @@ class CachedLLM:
         return self.mode == "replay"
 
     @property
+    def stale(self) -> bool:
+        """True when the cassette was recorded against different questions."""
+        if not self._entries or self.expected_fingerprint is None:
+            return False
+        return self.stored_fingerprint != self.expected_fingerprint
+
+    @property
     def reason(self) -> str | None:
         if self.mode == "replay" and not self._entries:
             return f"沒有錄音檔 {self.path.name}"
+        if self.stale:
+            return f"錄音檔 {self.path.name} 已過期（prompt／工具／情境有變），請重錄"
         return getattr(self.inner, "reason", None)
 
     # -- storage -------------------------------------------------------------
@@ -102,6 +142,7 @@ class CachedLLM:
             return
         self._entries = {entry["key"]: entry for entry in raw.get("turns", [])}
         self.recorded_model = raw.get("model") or None
+        self.stored_fingerprint = raw.get("fingerprint")
 
     def _save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -113,6 +154,7 @@ class CachedLLM:
             # The model that actually produced these turns, which is what the
             # UI must name when replaying them.
             "model": self.recorded_model or getattr(self.inner, "model_id", "") or "unknown",
+            "fingerprint": self.expected_fingerprint,
             "turns": list(self._entries.values()),
         }
         self.path.write_text(
