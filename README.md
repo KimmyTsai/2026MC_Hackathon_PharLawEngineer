@@ -106,6 +106,21 @@ $env:GEMINI_KEY_INDEX = 1   # 用第二把
 
 模型不可用時（沒金鑰、額度用完、429），畫面上的 Agent badge 會顯示「確定性規劃」並附原因，計畫照樣產生。
 
+## 底圖
+
+`MAP_PROVIDER` 控制底圖來源：
+
+| 值 | 來源 | 需要什麼 |
+| --- | --- | --- |
+`osm`（預設） | OpenStreetMap | 不需要金鑰，圖磚掛掉時向量圖層仍可讀 |
+`google` | Google **Map Tiles API**，由伺服器代理 | `MAPS_API_KEY.txt` + 啟用 Map Tiles API |
+
+Google 圖磚**不會**讓瀏覽器直接向 Google 要——Map Tiles 的請求網址必須帶 `key`，直接用就等於把金鑰印在頁面上。所以走 `/map/tiles/{z}/{x}/{y}.png` 由伺服器轉送，金鑰留在本機。連續 5 張圖磚失敗就自動退回 OSM 並在地圖上標示。
+
+不要把 Leaflet 的圖磚網址指向 `mt0.google.com/vt/...`——那違反 Google Maps 服務條款，圖磚只能透過 Maps API 存取。
+
+圖磚只做小量記憶體快取（平移時不重抓），不落地存檔：持久快取是我無法在這裡確認的條款問題，而離線情境已經由 OSM 退路涵蓋。
+
 ## 對外動作的授權界線
 
 `send_email` **不在模型的工具清單裡**——這是結構上的限制，不是 prompt 指示，有測試斷言它不存在。模型只能呼叫 `draft_email`，那只會把草稿放進 `pending_confirmations`。

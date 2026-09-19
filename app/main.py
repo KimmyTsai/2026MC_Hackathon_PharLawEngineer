@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -25,6 +25,7 @@ from app.clock import SimClock
 from app.config import RunMode, Settings, get_settings
 from app.graph.loader import load_campus_graph
 from app.graph.status import FacilityStatusStore
+from app.sources.maps import GoogleTileProxy, MapTilesError
 from app.sources.registry import ProviderRegistry
 from app.sources.scenario import ScenarioEvent, load_scenario
 
@@ -46,7 +47,16 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     app.state.settings = settings
     app.state.agent = build_state(settings)
-    yield
+    app.state.tiles = (
+        GoogleTileProxy(settings.maps_api_key)
+        if settings.map_provider.lower() == "google" and settings.has_maps
+        else None
+    )
+    try:
+        yield
+    finally:
+        if app.state.tiles is not None:
+            app.state.tiles.close()
 
 
 app = FastAPI(title="CampusPulse", version="0.1.0", lifespan=lifespan)
@@ -101,6 +111,61 @@ def read_graph(request: Request) -> dict[str, Any]:
     payload["unconfirmed_ids"] = sorted(state.facilities.unconfirmed_ids(now))
     payload["as_of"] = now.isoformat()
     return payload
+
+
+@app.get("/map/config")
+def map_config(request: Request) -> dict[str, Any]:
+    """Which basemap the page should use, and where to get it.
+
+    Never returns the API key: tiles come back through /map/tiles.
+    """
+    settings: Settings = request.app.state.settings
+    wanted = (settings.map_provider or "osm").lower()
+    proxy = getattr(request.app.state, "tiles", None)
+
+    if wanted == "google" and proxy is not None:
+        return {
+            "provider": "google",
+            "tile_url": "/map/tiles/{z}/{x}/{y}.png",
+            "attribution": proxy.attribution(23.01, 22.98, 120.24, 120.19, 16),
+            "max_zoom": 20,
+            "fallback": {
+                "provider": "osm",
+                "tile_url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                "attribution": "© OpenStreetMap",
+                "max_zoom": 19,
+            },
+        }
+
+    reason = None
+    if wanted == "google":
+        reason = "MAPS_API_KEY 未設定，改用 OpenStreetMap"
+    return {
+        "provider": "osm",
+        "tile_url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "attribution": "© OpenStreetMap",
+        "max_zoom": 19,
+        "reason": reason,
+        "fallback": None,
+    }
+
+
+@app.get("/map/tiles/{z}/{x}/{y}.png")
+def map_tile(z: int, x: int, y: int, request: Request) -> Response:
+    """Relay one Google tile. The browser never sees the API key."""
+    proxy = getattr(request.app.state, "tiles", None)
+    if proxy is None:
+        raise HTTPException(503, "Google 圖磚未啟用")
+    try:
+        data = proxy.tile(z, x, y)
+    except MapTilesError as exc:
+        # 502 rather than 500: the page reacts by falling back to OSM.
+        raise HTTPException(502, str(exc)) from exc
+    return Response(
+        content=data,
+        media_type="image/png",
+        headers={"Cache-Control": "private, max-age=300"},
+    )
 
 
 @app.get("/events")

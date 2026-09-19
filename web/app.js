@@ -332,6 +332,17 @@ function renderLog(snapshot) {
   for (const entry of snapshot.agent_log ?? []) appendLog(entry);
 }
 
+let basemapNote = "";
+
+async function initBasemap() {
+  const config = await fetch("/map/config").then((r) => r.json());
+  campusMap.useBasemap(config, (fallback) => {
+    basemapNote = `Google 圖磚無法載入，已改用 ${fallback.attribution}`;
+    refresh();
+  });
+  basemapNote = config.reason ?? "";
+}
+
 async function refresh() {
   const [snapshot, graph] = await Promise.all([
     fetch("/state").then((r) => r.json()),
@@ -355,6 +366,7 @@ async function refresh() {
   const { changed } = campusMap.drawRoute(plan && plan.status !== "infeasible" ? plan : null);
 
   const notes = [];
+  if (basemapNote) notes.push(basemapNote);
   if (graph.draft) notes.push("圖資為草稿，座標未校正");
   if (changed) notes.push("路線已改變");
   const tiles = campusMap.note();
@@ -440,4 +452,12 @@ campusMap = new CampusMap("map");
 buildLegend($("legend"));
 wireControls();
 wireDialog();
-refresh().then(connectStream);
+initBasemap()
+  .catch(() => campusMap.useBasemap({
+    provider: "osm",
+    tile_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: "© OpenStreetMap",
+    max_zoom: 19,
+  }))
+  .then(refresh)
+  .then(connectStream);

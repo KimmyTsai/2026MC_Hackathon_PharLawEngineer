@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
 
 
 def test_health_reports_mode_and_graph_size(client):
@@ -400,3 +401,79 @@ def test_the_confirmation_dialog_is_in_the_page(client):
     assert 'id="confirm-dialog"' in page
     for label in ("寄出", "修改", "取消"):
         assert label in page
+
+
+# --------------------------------------------------------------------------- #
+# basemap: Google tiles are proxied so the key never reaches the browser
+# --------------------------------------------------------------------------- #
+def test_map_config_defaults_to_openstreetmap(client):
+    config = client.get("/map/config").json()
+    assert config["provider"] == "osm"
+    assert config["tile_url"].startswith("https://tile.openstreetmap.org/")
+
+
+def test_map_config_never_leaks_the_api_key(client, settings):
+    body = client.get("/map/config").text + client.get("/").text
+    assert "key=" not in body
+    if settings.maps_api_key:
+        assert settings.maps_api_key not in body
+
+
+def test_the_tile_proxy_is_off_unless_google_is_selected(client):
+    response = client.get("/map/tiles/16/54737/28468.png")
+    assert response.status_code == 503
+    assert "未啟用" in response.json()["detail"]
+
+
+class _StubProxy:
+    """Stands in for GoogleTileProxy so no test touches Google."""
+
+    def __init__(self, error: Exception | None = None) -> None:
+        self.error = error
+
+    def attribution(self, *_args):
+        return "地圖資料 ©Google"
+
+    def tile(self, z, x, y):
+        if self.error:
+            raise self.error
+        return bytes([0x89]) + b"PNG stub"
+
+
+@contextmanager
+def google_basemap(client, proxy):
+    """Swap the app into Google-tile mode for one test, then put it back."""
+    app = client.app
+    old_settings, old_tiles = app.state.settings, getattr(app.state, "tiles", None)
+    app.state.settings = old_settings.model_copy(update={"map_provider": "google"})
+    app.state.tiles = proxy
+    try:
+        yield
+    finally:
+        app.state.settings = old_settings
+        app.state.tiles = old_tiles
+
+
+def test_google_config_hides_the_key_and_offers_a_fallback(client):
+    """With the proxy installed the page gets a relative tile URL, never a
+    Google URL with a key in it."""
+    with google_basemap(client, _StubProxy()):
+        config = client.get("/map/config").json()
+        assert config["provider"] == "google"
+        assert config["tile_url"] == "/map/tiles/{z}/{x}/{y}.png"
+        assert "Google" in config["attribution"]
+        assert config["fallback"]["provider"] == "osm"
+        assert "key" not in config["tile_url"]
+
+        tile = client.get("/map/tiles/16/54737/28468.png")
+        assert tile.status_code == 200
+        assert tile.headers["content-type"] == "image/png"
+
+
+def test_a_tile_failure_reports_502_so_the_page_can_fall_back(client):
+    from app.sources.maps import MapTilesError
+
+    with google_basemap(client, _StubProxy(MapTilesError("createSession 403"))):
+        response = client.get("/map/tiles/16/54737/28468.png")
+        assert response.status_code == 502
+        assert "403" in response.json()["detail"]

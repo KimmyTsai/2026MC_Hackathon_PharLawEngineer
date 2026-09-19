@@ -55,16 +55,38 @@ class CampusMap {
     // stalls the page. Only re-fit when the view actually needs to move.
     this.lastFitKey = null;
 
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "© OpenStreetMap",
-    })
-      .on("tileerror", () => {
-        this.tilesFailed = true;
-      })
-      .addTo(this.map);
-
     this.map.setView([22.9969, 120.2201], 16);
+    this.tileLayer = null;
+    this.provider = null;
+    this.tileErrors = 0;
+  }
+
+  /** Install the basemap. `config` comes from /map/config.
+   *
+   * Google tiles arrive through our own server so the API key stays there. If
+   * they stop working mid-demo we switch to OSM rather than showing a blank
+   * map — the vectors alone are still readable, but a basemap helps.
+   */
+  useBasemap(config, onFallback) {
+    if (this.tileLayer) this.map.removeLayer(this.tileLayer);
+    this.provider = config.provider;
+    this.tileErrors = 0;
+    this.tilesFailed = false;
+
+    this.tileLayer = L.tileLayer(config.tile_url, {
+      maxZoom: config.max_zoom ?? 19,
+      attribution: config.attribution ?? "",
+    });
+    this.tileLayer.on("tileerror", () => {
+      this.tileErrors += 1;
+      this.tilesFailed = true;
+      // A handful of misses is normal at the edges; a wall of them is not.
+      if (config.fallback && this.tileErrors === 5) {
+        this.useBasemap(config.fallback, onFallback);
+        if (onFallback) onFallback(config.fallback);
+      }
+    });
+    this.tileLayer.addTo(this.map);
   }
 
   /** Draw the graph. Called whenever facility status changes. */
@@ -208,7 +230,10 @@ class CampusMap {
   }
 
   note() {
-    return this.tilesFailed ? "圖磚離線，只顯示圖資向量" : "";
+    if (!this.tilesFailed) return "";
+    return this.provider === "osm"
+      ? "圖磚離線，只顯示圖資向量"
+      : "Google 圖磚載入異常";
   }
 }
 

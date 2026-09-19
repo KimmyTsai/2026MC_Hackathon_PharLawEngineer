@@ -5,6 +5,13 @@
 - State: complete
 - Goal: the agent can prepare an outward-facing action but cannot perform one. `demo-and-acceptance.md` lists this as a must-pass item.
 
+## Basemap: Google Map Tiles (2026-09-19)
+- The key in `MAPS_API_KEY.txt` now reaches **Map Tiles API, Maps Static API and Geocoding**; Places is still blocked (not needed).
+- `MAP_PROVIDER=google` serves tiles through `/map/tiles/{z}/{x}/{y}.png`. Verified: `createSession` → token, tile returns a real 2520-byte PNG, second request is served from memory in 17 ms, and neither `/map/config` nor the page contains `key=`. Leaflet's attribution in the browser reads 「地圖資料 ©2026 Google」.
+- Leaflet stays; only the tile source changed, so every vector layer, the campus/journey focus and the fallback behaviour are untouched. Five consecutive tile errors switch the page back to OSM and say so.
+- **Not done, deliberately**: pointing Leaflet at `mt0.google.com/vt/...`. That is the popular recipe and it violates the Maps Terms of Service, which permit tile access only through the Maps APIs.
+- Tiles are cached in memory only (400 tiles, LRU). Persistent on-disk caching is a Terms question this code cannot settle, and OSM already covers the offline case.
+
 ## Evidence (M5)
 - `send_email` is **absent from the toolbox**; the model can only call `draft_email`, which creates a `ProposedAction` and returns `sent: false`. A test asserts the absence, so the boundary cannot be softened by editing a prompt.
 - Walking the whole scenario: at 08:25 the agent warns that the window is closing (still feasible, no draft); at 08:35 it drafts. The body carries computed facts — 「現在出發最快也要 09:26 才會到，比計算機組織需要抵達的 09:18 晚約 9 分鐘」 — not model guesses.

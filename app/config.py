@@ -59,6 +59,11 @@ class Settings(BaseSettings):
     # The late-notice recipient. Configuration rather than scenario data, so a
     # team can point it at their own test mailbox without re-recording the
     # cassette. Synthetic by default — never a real person.
+    # osm = vendored Leaflet + OpenStreetMap tiles, works with no key and
+    # degrades to bare vectors. google = Map Tiles API proxied through this
+    # service so the key never reaches the browser.
+    map_provider: str = "osm"
+
     ta_email: str = "ta-csie@example.edu"
     student_name: str = "學生"
 
